@@ -1,0 +1,5 @@
+stimela (0.2.3-1) xenial; urgency=low
+
+  * Initial release
+
+ -- Gijs Molenaar (launchpad ppa build key) <gijs@pythonic.nl>  Fri, 03 Feb 2017 13:15:03 +0200
