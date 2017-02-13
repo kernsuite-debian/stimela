@@ -1,8 +1,4 @@
-FROM stimela/aoflagger
+FROM stimela/aoflagger:0.2.5
 MAINTAINER <sphemakh@gmial.com>
-
-RUN mkdir -p /input /output
-
 ADD src /code
-
 CMD python /code/run.py
