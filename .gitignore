@@ -8,4 +8,5 @@ debian/stimela.substvars
 debian/stimela/
 build/
 debian/stimela.debhelper.log
+debian/debhelper-build-stamp
 stimela.egg-info/
