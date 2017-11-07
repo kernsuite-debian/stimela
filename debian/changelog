@@ -1,3 +1,9 @@
+stimela (0.3.0-1kern1) xenial; urgency=medium
+
+  * new upstream release
+
+ -- KERN packaging <packaging@kernsuite.info>  Tue, 07 Nov 2017 17:25:26 +0200
+
 stimela (0.2.7-1) xenial; urgency=medium
 
   * new upstream release
