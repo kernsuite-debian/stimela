@@ -1,7 +1,7 @@
 {
     "task": "wsclean", 
     "base": "stimela/wsclean", 
-    "tag": "0.2.7", 
+    "tag": "0.3.0", 
     "description": "WSClean imaging software", 
     "prefix": "-", 
     "binary": "/usr/bin/wsclean", 
@@ -63,7 +63,7 @@
             "info": "Force or disable reordering of Measurement Set. This can be faster when the measurement set needs to be iterated several times, such as with many major iterations or in channel imaging mode. If unspecified will only be enabled in channel imaging mode", 
             "dtype": "bool", 
             "default": null, 
-            "name": "reoder"
+            "name": "reorder"
         }, 
         {
             "info": "Save model data in model data column after imaging. It can save time not to update the model data column.", 
@@ -377,13 +377,13 @@
             "info": "Set maximum uv distance", 
             "dtype": "float", 
             "default": null, 
-            "name": "maxuvw-l"
+            "name": "maxuv-l"
         }, 
         {
-            "info": "Set maximum uv distance", 
+            "info": "Set minimum uv distance", 
             "dtype": "float", 
             "default": null, 
-            "name": "maxuvw-l"
+            "name": "minuv-l"
         }, 
         {
             "info": "Maximum number of clean iterations to perform", 
@@ -403,6 +403,34 @@
             "dtype": "float", 
             "default": null, 
             "name": "auto-threshold"
+        }, 
+        {
+            "info": "Construct a mask from found components and when a threshold of sigma is reached, continue cleaning with the mask down to the normal threshold.", 
+            "dtype": "float", 
+            "default": null, 
+            "name": "auto-mask"
+        }, 
+        {
+            "info": "Instead of using a single RMS for auto thresholding/masking, use a spatially varying RMS image", 
+            "dtype": "bool", 
+            "default": false, 
+            "name": "rms-background"
+        }, 
+        {
+            "info": "Size of window for creating the RMS background map, in number of PSFs.", 
+            "dtype": "int", 
+            "default": null, 
+            "name": "rms-background-window"
+        }, 
+        {
+            "info": "Either 'rms' (default, uses sliding window RMS) or 'rms-with-min' (use max(window rms,1.5/5window min))", 
+            "dtype": "str", 
+            "default": null, 
+            "name": "rms-background-method", 
+            "choices": [
+                "rms", 
+                "rms-with-min"
+            ]
         }, 
         {
             "info": "Cleaning gain: Ratio of peak that will be subtracted in each iteration", 
@@ -441,12 +469,6 @@
             "name": "fast-multiscale"
         }, 
         {
-            "info": "Parameter to lower the threshold for larger scales. The used threshold for a scale is threshold(scale)=pointsource_threshold x tbias^scale. A lower bias will clean larger scales deeper.", 
-            "dtype": "float", 
-            "default": 0.7, 
-            "name": "multiscale-threshold-bias"
-        }, 
-        {
             "info": "Parameter to prevent cleaning small scales in the large-scale iterations. A higher bias will give more focus to larger scales", 
             "dtype": "float", 
             "default": 0.6, 
@@ -473,7 +495,7 @@
         {
             "info": "Set the border size in which no cleaning is performed, in percentage of the width/height of the image. With an image size of 1000 and clean border of 1%, each border is 10 pixels.", 
             "dtype": "float", 
-            "default": 5, 
+            "default": null, 
             "name": "cleanborder"
         }, 
         {

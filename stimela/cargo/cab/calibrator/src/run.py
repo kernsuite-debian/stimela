@@ -23,7 +23,6 @@ for param in parameters:
     value = param['value']
     if value is None:
         continue
-
     if value is False:
         value = 0
     elif value is True:
@@ -37,9 +36,29 @@ msbase = os.path.basename(msname)[:-3]
 prefix = jdict.pop('prefix', None) or '{0}/{1}'.format(OUTPUT, msbase)
 params = {}
 
+# options for writing flags
+writeflags = jdict.pop("write-flags-to-ms", None)
+if writeflags:
+    params["ms_sel.ms_write_flags"] = 1
+    params["ms_sel.ms_fill_legacy_flags"] = 1 if jdict.pop("fill-legacy-flags", False) else 0
+
+write_flagset = jdict.pop("write-flagset", None)
+if write_flagset:
+    params["ms_wfl.write_bitflag"]  = write_flagset
+    params["ms_sel.ms_write_flag_policy"] = "'add to set'" if jdict.pop("write-flag-policy", False) else "'replace set'"
+
+# Read flags options
+readflagsets = jdict.pop("read-flagsets", False)
+if readflagsets:
+    params["ms_rfl.read_flagsets"] = readflagsets
+
+params['ms_sel.ms_read_flags'] = 1 if jdict.pop("read-flags-from-ms", False) else 0
+params["ms_rfl.read_legacy_flags"] = 1 if jdict.pop("read-legacy-flags", False) else 0
+
 params["ms_sel.msname"] = msname
 field_id = jdict.pop("field-id", 0)
 spw_id = jdict.pop("spw-id", 0)
+params["ms_sel.tile_size"] = jdict.pop("tile-size", 0)
 params["ms_sel.ddid_index"] = spw_id
 params["ms_sel.field_index"] = field_id
 
@@ -56,19 +75,22 @@ params["ms_sel.input_column"] = column
 params["ms_sel.output_column"] = outcol
 params["tiggerlsm.filename"] = skymodel
 params["do_output"] = jdict.pop("output-data", "CORR_RES")
+saveconf = jdict.pop('save-config', None)
+params['ms_sel.ms_corr_sel'] = "'{}'".format(jdict.pop('correlations', '2x2'))
 
 label = jdict.pop("label", None)
 
 gjones = jdict.pop("Gjones", False)
 if gjones:
 
-    time_smooth, freq_smooth = params.get("Gjones-smoothing", (1,1))
-    time_int, freq_int = jdict.get("Gjones-intervals", (1,1))
+    time_smooth, freq_smooth = jdict.get("Gjones-smoothing-intervals", (1,1))
+    time_int, freq_int = jdict.get("Gjones-solution-intervals", (1,1))
     mode = 'apply' if jdict.get('Gjones-apply-only', False) else 'solve-save'
 
-    gjones_gains = "{0}/{1}{2}.gain.cp".format(msname, msbase, "-%s"%label if label else "")
+    gjones_gains = jdict.pop('Gjones-gain-table', None) or "{0}/{1}{2}.gain.cp".format(OUTPUT, msbase, "-%s"%label if label else "")
     params.update( {
         "stefcal_gain.mode" : mode, 
+        "stefcal_gain.reset" : 0 if mode=="apply" else 1,
         "stefcal_gain.implementation" : jones_type,
         "tiggerlsm.lsm_subset"  : jdict.get("subset", "all"),
         "stefcal_gain.timeint"  : time_int,
@@ -91,6 +113,7 @@ if beam and beam_files_pattern:
         "me.p_enable"   : 1,
         "me.e_module"   : "Siamese_OMS_pybeams_fits",
         "me.e_all_stations" : 1,
+        "pybeams_fits.sky_rotation"    :  1 if jdict.pop('parallactic-angle-rotation', False) else 0,
         "pybeams_fits.l_axis"   : jdict.pop("beam-l-axis", "L"),
         "pybeams_fits.m_axis"   : jdict.pop("beam-m-axis", "M"),
         "pybeams_fits.filename_pattern" : "'{}'".format(beam_files_pattern),
@@ -104,9 +127,10 @@ if ddjones:
 
     mode = 'apply' if jdict.get('DDjones-apply-only', False) else 'solve-save'
 
-    ddjones_gains = "{0}/{1}{2}.diffgain.cp".format(msname, msbase, "-%s"%label if label else "")
+    ddjones_gains = jdict.pop('DDjones-gain-table', None) or "{0}/{1}{2}.diffgain.cp".format(OUTPUT, msbase, "-%s"%label if label else "")
     params.update({
         "stefcal_diffgain.enabled" : 1,
+        "stefcal_diffgain.reset" : 0 if mode=="apply" else 1,
         "stefcal_diffgain.flag_ampl" : 0,
         "stefcal_diffgain.flag_chisq" : 1,
         "stefcal_diffgain.flag_chisq_threshold" : 5,
@@ -127,13 +151,14 @@ if ddjones:
 
 ifrjones = jdict.pop("DDjones", False)
 if ifrjones:
-    ifrjones_gains = "{0}/{1}{2}.ifrgain.cp".format(msname, msbase, "-%s"%label if label else "")
+    ifrjones_gains = jdict.pop('IFRjones-gain-table', None) or "{0}/{1}{2}.ifrgain.cp".format(OUTPUT, msbase, "-%s"%label if label else "")
     mode = 'apply' if jdict.get('IFRjones-apply-only', False) else 'solve-save'
 
     params.update({
         "stefcal_ifr_gain_mode" : mode,
         "stefcal_ifr_gains" : 1,
         "stefcal_ifr_gain_reset" : 0 if mode=="apply" else 1,
+        "stefcal_reset_ifr_gains" : 0 if mode=="apply" else 1,
         "stefcal_ifr_gain.table" : ifrjones_gains,
     })
 
@@ -143,19 +168,30 @@ gjones_plotprefix = prefix+"-gjones_plots"
 ddjones_plotprefix = prefix+"-ddjones_plots"
 ifrjones_plotprefix = prefix+"-ifrjones_plots"
 
+
 def run_meqtrees(msname):
 
     prefix = ["--mt %d -c %s [%s]"%(THREADS, TDL, SECTION)]
     suffix = ["%s/Calico/calico-stefcal.py =stefcal"%os.environ["MEQTREES_CATTERY_PATH"]]
     options = {}
     options.update(params)
-    if options.pop("add-vis-model", 0):
+    if jdict.pop("add-vis-model", 0):
         options["read_ms_model"] = 1
         options["ms_sel.model_column"] = "MODEL_DATA"
 
-    args = prefix + ["%s=%s"%(key, val) for key,val in options.iteritems()] + suffix
+    taql = jdict.get('data-selection', None)
+    if taql:
+        options["ms_sel.ms_taql_str"] = taql
+    
+    args = []
+    for key,value in options.iteritems():
+        if isinstance(value, str) and value.find(' ')>0:
+            value = '"{:s}"'.format(value)
+        args.append('{0}={1}'.format(key,value))
 
-    utils.xrun(cab['binary'], args)
+    args = prefix + args + suffix
+    
+    utils.xrun(cab['binary'], args + ['-s {}'.format(saveconf) if saveconf else ''])
     
     print("MeqTrees Done!")
     # now plot the gains

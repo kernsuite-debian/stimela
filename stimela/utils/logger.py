@@ -12,12 +12,21 @@ class StimelaLogger(object):
     def __init__(self, lfile):
         
         self.lfile = lfile
+        # Create file if it does not exist
+        if not os.path.exists(self.lfile):
+            with open(lfile, 'w') as wstd:
+                wstd.write('{}')
+            
         self.info = self.read(lfile)
         # First make sure that all fields are
         # initialised. Initialise if not so
+        changed = False
         for item in ['images', 'containers', 'processes']:
             if self.info.get(item, None) is None:
                 self.info[item] = {}
+                changed = True
+        if changed:
+            self.write()
 
 
     def _inspect(self, name):
@@ -29,7 +38,7 @@ class StimelaLogger(object):
         return jdict
 
 
-    def log_image(self, name, replace=False, cab=False):
+    def log_image(self, name, image_dir, replace=False, cab=False):
         info = self._inspect(name)
 
         if name not in self.info['images'].keys() or replace:
@@ -37,6 +46,7 @@ class StimelaLogger(object):
                 'TIME'      :   info['Created'].split('.')[0].replace('Z', '0'),
                 'ID'        :   info['Id'].split(':')[1],
                 'CAB'       :   cab,
+                'DIR'       :   image_dir, 
             }
         else:
             print('Image {0} has already been logged.'.format(name))

@@ -1,10 +1,7 @@
-FROM stimela/ddfacet
+FROM stimela/ddfacet:0.2.9
 MAINTAINER <sphemakh@gmail.com>
-
-RUN mkdir -p /input /output
-
 ENV TERM xterm
-
 ADD src /code
-
-CMD python /code/run.py
+ENV LOGFILE ${OUTPUT}/logfile.txt
+ENTRYPOINT ["/bin/sh"]
+CMD ["-c", "/code/run.sh"]

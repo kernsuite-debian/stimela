@@ -1,4 +1,4 @@
-FROM stimela/casa:0.2.7
+FROM stimela/casa:0.3.0
 MAINTAINER <sphemakh@gmail.com>
 #This task needs xvfb to be installed
 # @sphemakh I'm placing the fix in this 
@@ -10,4 +10,5 @@ RUN chmod 755 /etc/init.d/xvfb
 RUN chmod 777 /var/run
 ENV DISPLAY :99
 ADD src /code
-CMD /bin/bash -c "/etc/init.d/xvfb start && python /code/run.py && /etc/init.d/xvfb stop"
+ENV LOGFILE ${OUTPUT}/logfile.txt
+CMD /code/run.sh
