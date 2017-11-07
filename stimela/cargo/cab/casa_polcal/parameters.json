@@ -1,7 +1,7 @@
 {
     "task": "casa_polcal", 
     "base": "stimela/casa", 
-    "tag": "0.2.7", 
+    "tag": "0.3.0", 
     "description": "Specify Calibration Values of Various Types", 
     "prefix": "-", 
     "binary": "casa_gaincal", 
@@ -174,12 +174,6 @@
             "default": null, 
             "name": "spwmap", 
             "delimeter": ","
-        }, 
-        {
-            "info": "If true the taskname must be started using polcal(...)", 
-            "dtype": "bool", 
-            "default": false, 
-            "name": "async"
         }
     ]
 }

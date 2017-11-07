@@ -1,7 +1,7 @@
 {
     "task": "pybdsm", 
     "base": "stimela/lofar", 
-    "tag": "0.2.7", 
+    "tag": "0.3.0", 
     "description": "Source finding in radio images", 
     "prefix": " ", 
     "binary": "python", 
@@ -102,6 +102,12 @@
             "dtype": "bool", 
             "default": false, 
             "name": "beam_sp_derive"
+        }, 
+        {
+            "info": "Get beams for each channel in FITS header. Eg. BMAJ1, BMAJ1, BPA1; BMAJ2, BMIN2, BPA2", 
+            "dtype": "bool", 
+            "default": false, 
+            "name": "multi_chan_beam"
         }, 
         {
             "info": "FWHM of synthesized beam per channel. Specify as [(bmaj_ch1, bmin_ch1, bpa_ch1), (bmaj_ch2, bmin_ch2, bpa_ch2), etc.] in degrees. E.g., beam_spectrum = [(0.01, 0.01, 45.0), (0.02,0.01, 34.0)] for two channels. None => all equal to beam", 
@@ -466,6 +472,18 @@
             "dtype": "bool", 
             "default": true, 
             "name": "port2tigger"
+        }, 
+        {
+            "info": "Calculate spectral indices (for multi-channel image)", 
+            "dtype": "bool", 
+            "default": false, 
+            "name": "spectralindex_do"
+        }, 
+        {
+            "info": "Start frequency (unit => Hz)", 
+            "dtype": "float", 
+            "default": null, 
+            "name": "freq0"
         }
     ]
 }

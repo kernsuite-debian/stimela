@@ -36,7 +36,7 @@ for param in cab['parameters']:
         stack = True
         continue
     elif name == 'unstack':
-        stack = True
+        unstack = True
         continue
     elif name == 'unstack-chunk':
         chunk = value
@@ -54,6 +54,8 @@ if stack and axis:
     args.append( '{0}stack {1}:{2}'.format(cab['prefix'], outimage, axis))
     outimage = None
 elif unstack and axis:
-    args.append( '{0}stack {1}:{2}:{3}'.format(cab['prefix'], outimage, axis, chunk))
-    
-utils.xrun("fitstool.py", args+[inimage, outimage or ""])
+    args.append( '{0}unstack {1}:{2}:{3}'.format(cab['prefix'], outimage, axis, chunk))
+    outimage = None
+else:
+    outimage = '{0}output {1}'.format(cab['prefix'], outimage)
+utils.xrun(cab['binary'], args+[inimage, outimage or ""])

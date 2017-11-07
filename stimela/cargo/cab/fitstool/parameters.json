@@ -1,7 +1,7 @@
 {
     "task": "fitstool", 
     "base": "stimela/meqtrees", 
-    "tag": "0.2.7", 
+    "tag": "0.3.0", 
     "description": "Convinience tools for manipulating FITS images", 
     "prefix": "--", 
     "binary": "fitstool.py", 
@@ -48,10 +48,28 @@
             "name": "mean"
         }, 
         {
+            "info": "sum input images", 
+            "dtype": "bool", 
+            "default": false, 
+            "name": "sum"
+        }, 
+        {
             "info": "take difference of 2 input images", 
             "dtype": "bool", 
             "default": false, 
             "name": "diff"
+        }, 
+        {
+            "info": "product of input images", 
+            "dtype": "bool", 
+            "default": false, 
+            "name": "prod"
+        }, 
+        {
+            "info": "take ratio of 2 input images", 
+            "dtype": "bool", 
+            "default": false, 
+            "name": "ratio"
         }, 
         {
             "info": "transfer data from image 2 into image 1, preserving the FITS header of image 1", 
@@ -82,6 +100,12 @@
             "dtype": "bool", 
             "default": null, 
             "name": "stack"
+        }, 
+        {
+            "info": "Delete original file(s) after stacking/unstacking using --stack/--unstack", 
+            "default": false, 
+            "name": "delete-files", 
+            "dtype": "bool"
         }, 
         {
             "info": "Unstack a FITS image into smaller chunks each having [each_chunk] planes along a given axis. This axis may given as an integer (as it appears in the NAXIS keyword), or as a string (as it appears in the CTYPE keyword)", 

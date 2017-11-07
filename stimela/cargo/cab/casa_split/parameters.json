@@ -1,7 +1,7 @@
 {
     "task": "casa_split", 
     "base": "stimela/casa", 
-    "tag": "0.2.7", 
+    "tag": "0.3.0", 
     "description": "Create a visibility subset from an existing visibility set", 
     "prefix": "-", 
     "binary": "split", 
@@ -119,13 +119,7 @@
             "info": "If the input is a multi-MS, make the output one, too. (experimental)", 
             "dtype": "bool", 
             "default": false, 
-            "name": "keepms"
-        }, 
-        {
-            "info": "If true the taskname must be started using split(...)", 
-            "dtype": "bool", 
-            "default": false, 
-            "name": "asynch"
+            "name": "keepmms"
         }
     ]
 }

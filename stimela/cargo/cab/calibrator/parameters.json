@@ -1,7 +1,7 @@
 {
     "task": "calibrator", 
     "base": "stimela/meqtrees", 
-    "tag": "0.2.7", 
+    "tag": "0.3.0", 
     "description": "Uses MeqTrees to calibrate a measurement set, given a sky model (Gaussians and point sources, and/or visibility data in MODEL_DATA column)", 
     "prefix": " ", 
     "binary": "/usr/bin/meqtree-pipeliner.py", 
@@ -70,10 +70,12 @@
             "default": null, 
             "name": "output-data", 
             "choices": [
-                "CORRECTED_RESIDUAL", 
-                "CORRECTED_DATA", 
-                "RESIDUAL_DATA", 
-                "CORR_RES"
+                "CORR_DATA", 
+                "RES", 
+                "CORR_RES", 
+                "CORR_DATA_SUB", 
+                "PREDICT", 
+                "DATA+PREDICT"
             ]
         }, 
         {
@@ -83,10 +85,37 @@
             "name": "threads"
         }, 
         {
+            "info": "TDL configuration file. If not specified, will use a default template", 
+            "dtype": "file", 
+            "default": null, 
+            "name": "tdlconf", 
+            "io": "input"
+        }, 
+        {
+            "info": "save final configuration (after all command-line arguments have been applied)", 
+            "dtype": "file", 
+            "default": null, 
+            "name": "save-config", 
+            "io": "output"
+        }, 
+        {
             "info": "Section to execute in TDL config file. Only needed if using custom TDL config", 
             "dtype": "str", 
             "default": null, 
             "name": "section"
+        }, 
+        {
+            "info": "Correlations to use", 
+            "dtype": "str", 
+            "default": "2x2", 
+            "name": "correlations", 
+            "choices": [
+                "2x2", 
+                "2x2, diagonal terms only", 
+                "2", 
+                "1", 
+                "1 corr to 2x2 diag"
+            ]
         }, 
         {
             "info": "Field ID", 
@@ -99,6 +128,52 @@
             "dtype": "int", 
             "name": "spw-id", 
             "defaut": 0
+        }, 
+        {
+            "info": "Write flags to MS", 
+            "dtype": "bool", 
+            "defalt": true, 
+            "name": "write-flags-to-ms"
+        }, 
+        {
+            "info": "name of flagset to write new flags to", 
+            "dtype": "str", 
+            "defalt": null, 
+            "name": "write-flagset"
+        }, 
+        {
+            "info": "Add or replace flagset if it already exists.", 
+            "dtype": "str", 
+            "default": "replace", 
+            "name": "write-flagset-policy", 
+            "choices": [
+                "add", 
+                "replace"
+            ]
+        }, 
+        {
+            "info": "Read flagsets", 
+            "dtype": "str", 
+            "default": null, 
+            "name": "read-flagsets"
+        }, 
+        {
+            "info": "Read legacy flags", 
+            "dtype": "bool", 
+            "default": true, 
+            "name": "read-legacy-flags"
+        }, 
+        {
+            "info": "Use existing flags from MS", 
+            "dtype": "bool", 
+            "default": true, 
+            "name": "read-flags-from-ms"
+        }, 
+        {
+            "info": "Fill legacy flags", 
+            "dtype": "bool", 
+            "default": true, 
+            "name": "fill-legacy-flags"
         }, 
         {
             "info": "Add a primary beam model", 
@@ -137,10 +212,10 @@
             "name": "beam-m-axis"
         }, 
         {
-            "info": "Enable paralactic angle rotation. Enable if telescope mount is ALT-AZ", 
+            "info": "Enable parallactic angle rotation. Enable if telescope mount is ALT-AZ", 
             "dtype": "bool", 
             "default": false, 
-            "name": "paralactic-angle-rotation"
+            "name": "parallactic-angle-rotation"
         }, 
         {
             "info": "Enable direction dependent calibration", 
@@ -157,7 +232,7 @@
                 "Gain2x2", 
                 "GainDiag", 
                 "GainDiagPhase", 
-                "GainDiang2a", 
+                "GainDiag2a", 
                 "GainDiagCommon"
             ]
         }, 
@@ -208,6 +283,13 @@
             "dtype": "bool", 
             "default": false, 
             "name": "Gjones-apply-only"
+        }, 
+        {
+            "info": "G Jones gain table file name", 
+            "dtype": "file", 
+            "default": null, 
+            "name": "Gjones-gain-table", 
+            "io": "output"
         }, 
         {
             "info": "Enable direction dependent calibration", 
@@ -289,6 +371,13 @@
             "name": "DDjones-apply-only"
         }, 
         {
+            "info": "DD Jones gain table file name", 
+            "dtype": "file", 
+            "default": null, 
+            "name": "DDjones-gain-table", 
+            "io": "output"
+        }, 
+        {
             "info": "Enable interferometer based gain solutions", 
             "dtype": "bool", 
             "default": false, 
@@ -299,6 +388,25 @@
             "dtype": "bool", 
             "default": false, 
             "name": "IFRjones-apply-only"
+        }, 
+        {
+            "info": "IFR Jones gain table file name", 
+            "dtype": "file", 
+            "default": null, 
+            "name": "IFRjones-gain-table", 
+            "io": "output"
+        }, 
+        {
+            "info": "Size of tile (time bins) to process. Can be used to reduce memory footprint", 
+            "dtype": "int", 
+            "default": 1, 
+            "name": "tile-size"
+        }, 
+        {
+            "info": "TaQL selction string", 
+            "dtype": "str", 
+            "default": null, 
+            "name": "data-selection"
         }
     ]
 }

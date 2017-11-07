@@ -1,7 +1,7 @@
 {
     "task": "flagms", 
     "base": "stimela/meqtrees", 
-    "tag": "0.2.7", 
+    "tag": "0.3.0", 
     "description": "This program will execute an RFI strategy as can be created with the RFI gui and executes it on one or several   observations.", 
     "prefix": "--", 
     "binary": "flag-ms.py", 
@@ -9,7 +9,7 @@
     "parameters": [
         {
             "info": "Name of MS to be flagged", 
-            "dtype": "file", 
+            "dtype": "list:file", 
             "default": null, 
             "name": "msname", 
             "io": "msfile"
@@ -141,6 +141,11 @@
             "dtype": "bool", 
             "default": false, 
             "name": "extend-all-corr"
+        }, 
+        {
+            "info": "for 'flag' option only: if a named flagset doesn't exist, creates it. Without this option, an error is reported", 
+            "dtype": "bool", 
+            "name": "create"
         }, 
         {
             "info": "Raise the specified FLAGS", 

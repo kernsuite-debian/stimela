@@ -1,11 +1,11 @@
 {
     "task": "tigger-convert", 
     "base": "stimela/tigger", 
-    "tag": "0.2.7", 
+    "tag": "0.3.0", 
     "description": "Source finding in radio images", 
     "prefix": "--", 
     "binary": "tigger-convert", 
-    "msdir": false, 
+    "msdir": true, 
     "parameters": [
         {
             "info": "Input skymodel", 
@@ -24,6 +24,13 @@
             "required": true
         }, 
         {
+            "info": "Append this model to input-skymodel, then write to output-skymodel", 
+            "dtype": "file", 
+            "default": null, 
+            "name": "append", 
+            "io": "input"
+        }, 
+        {
             "info": "Forces overwrite of output model.", 
             "dtype": "bool", 
             "default": false, 
@@ -32,7 +39,7 @@
         {
             "info": "Input model type", 
             "dtype": "str", 
-            "default": "auto", 
+            "default": null, 
             "name": "type", 
             "choices": [
                 "Tigger", 
@@ -48,7 +55,7 @@
         {
             "info": "Output model type.", 
             "dtype": "str", 
-            "default": "auto", 
+            "default": null, 
             "name": "output-type", 
             "choices": [
                 "Tigger", 
@@ -183,7 +190,7 @@
         {
             "info": "Use XY basis correlations for beam filenames and Mueller matrices.", 
             "dtype": "str", 
-            "default": "RL", 
+            "default": null, 
             "name": "linear-pol"
         }, 
         {
@@ -236,21 +243,21 @@
         }, 
         {
             "info": "Rotate the primary beam pattern through a range of parallactic angles as given by the MS and take the average over time. This is more accurate than --pa-range.", 
-            "dtype": "file", 
+            "dtype": "list:file", 
             "default": null, 
             "name": "pa-from-ms", 
             "io": "msfile"
         }, 
         {
             "info": "Field ID for 'pa-from-ms' calculation", 
-            "dtype": "int", 
+            "dtype": "list:int", 
             "default": 0, 
             "name": "field-id"
         }, 
         {
             "info": "Correct approach to rotational averaging is to convert Jones(PA) to Mueller(PA), then average over PA. Tigger versions<=1.3.3 took the incorrect approach of averaging Jones over PA, then converting to Mueller. Use this option to mimic the old approach.", 
             "dtype": "bool", 
-            "default": true, 
+            "default": false, 
             "name": "beam-average-jones"
         }, 
         {
@@ -268,7 +275,7 @@
         {
             "info": "Size of one step in radial distance for the COPART scheme.", 
             "dtype": "float", 
-            "default": 10, 
+            "default": null, 
             "name": "radial-step"
         }, 
         {

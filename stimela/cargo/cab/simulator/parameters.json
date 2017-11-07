@@ -1,7 +1,7 @@
 {
     "task": "simulator", 
     "base": "stimela/meqtrees", 
-    "tag": "0.2.7", 
+    "tag": "0.3.0", 
     "description": "Uses MeqTrees to simulate a sky model (Gaussians and point sources) into measurement set (MS)", 
     "prefix": " ", 
     "binary": "meqtree-pipeliner.py", 
@@ -21,6 +21,13 @@
             "default": null, 
             "name": "tdlconf", 
             "io": "input"
+        }, 
+        {
+            "info": "save final configuration (after all command-line arguments have been applied)", 
+            "dtype": "file", 
+            "default": null, 
+            "name": "save-config", 
+            "io": "output"
         }, 
         {
             "info": "Number of CPUs to use for  multithreading", 
@@ -63,6 +70,12 @@
             "dtype": "bool", 
             "default": false, 
             "name": "recenter"
+        }, 
+        {
+            "info": "Enable time and bandwidth smearing in simulation", 
+            "dtype": "bool", 
+            "default": false, 
+            "name": "smearing"
         }, 
         {
             "info": "Add noise to simulated data", 
@@ -197,10 +210,10 @@
             "name": "beam-m-axis"
         }, 
         {
-            "info": "Enable paralactic angle rotation. Enable if telescope mount is ALT-AZ", 
+            "info": "Enable parallactic angle rotation. Enable if telescope mount is ALT-AZ", 
             "dtype": "bool", 
             "default": false, 
-            "name": "paralactic-angle-rotation"
+            "name": "parallactic-angle-rotation"
         }, 
         {
             "info": "Pointing accuracy in arcsec. If set to non-zero value, will introduce pointing errors into simulation", 

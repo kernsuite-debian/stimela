@@ -29,3 +29,17 @@
 - Fix noise only simulation in simulator cab. Don not look for file if skymodel is None
 - Allow user to specify gain matrix type in simulator   
 - Make custom katdal base image
+
+# 0.2.8
+- Parse G Jones solution intervals properly
+- Raise exception if user does not specify pixel size in lwimger predict mode
+- add CASA listobs, statwt, flagmanager
+
+# 0.2.9
+- display correct options for output-data type [calibrator cab]
+- Improve logging system
+- Custom cabs can now don't need to be in stimela/cargo/cab
+- Various fixes to minor bugs. Especiallly in casa_flagdata cab
+- Add DDFacet cab!!
+- Fix --us-only option in 'stimela build'
+- Upgrade to kern-2 (wsclean is using kern-dev)
