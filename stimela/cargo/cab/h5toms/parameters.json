@@ -1,7 +1,7 @@
 {
     "task": "h5toms", 
     "base": "stimela/katdal", 
-    "tag": "0.3.0", 
+    "tag": "1.0.0", 
     "description": "Convert HDF5 file(s) to MeasurementSet", 
     "prefix": "--", 
     "binary": "h5toms.py", 
@@ -37,6 +37,12 @@
             "dtype": "bool", 
             "default": false, 
             "name": "circular"
+        }, 
+        {
+            "info": "Overwrite MS file if it already exists", 
+            "dtype": "bool", 
+            "default": false, 
+            "name": "overwrite"
         }, 
         {
             "info": "Reference antenna (default is first one used by script)", 

@@ -1,5 +1,6 @@
-FROM stimela/base:0.3.0
+FROM stimela/base:1.0.0
 RUN docker-apt-install lofar python-tigger
 RUN pip install --upgrade git+https://github.com/ska-sa/tigger
-RUN pip uninstall -y numpy
-RUN pip install --upgrade pyfits numpy==1.11.3
+RUN pip install astropy
+RUN docker-apt-install gfortran build-essential libboost-python-dev
+RUN pip install git+https://github.com/lofar-astron/PyBDSF.git@v1.8.13

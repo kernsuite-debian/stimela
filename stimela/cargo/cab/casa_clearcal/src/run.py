@@ -1,6 +1,7 @@
-import sys
 import os
-import json
+import sys
+import logging
+import Crasa.Crasa as crasa
 
 sys.path.append("/utils")
 import utils
@@ -13,25 +14,14 @@ MSDIR = os.environ["MSDIR"]
 cab = utils.readJson(CONFIG)
 
 args = {}
-tasksuite = None
 for param in cab['parameters']:
     name = param['name']
     value = param['value']
 
     if value is None:
         continue
-    elif name == "task":
-        task = value
-        continue
-    elif name=='tasksuite':
-        tasksuite = tasksuite
 
     args[name] = value
 
-kwargs = "'{}'".format(json.dumps(args))
-
-ARGS = [task, 
-    ("-s " + tasksuite) if tasksuite is not None else (""), 
-        kwargs]
-
-utils.xrun(cab['binary'], ARGS)
+task = crasa.CasaTask(cab["binary"], **args)
+task.run()

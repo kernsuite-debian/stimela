@@ -12,6 +12,7 @@ from stimela_misc import version
 
 USER = os.environ["USER"]
 UID = os.getuid()
+GID = os.getgid()
 CAB_PATH = os.path.abspath(os.path.dirname(cab.__file__))
 
 
@@ -69,7 +70,7 @@ class StimelaJob(object):
                     self.job.parameter_file_name)
 	
         self.created = False
-        self.job.create(*['--user {}'.format(UID)])
+        self.job.create(*['--user {}:{}'.format(UID, GID)])
         self.created = True
         self.job.start()
     
@@ -166,11 +167,6 @@ class StimelaJob(object):
         cont.add_volume(self.recipe.parameter_file_dir, '/configs', perm='ro')
         cont.add_environ('CONFIG', '/configs/{}.json'.format(name))
 
-        cont.add_volume('/etc/group', '/etc/group', 'ro')
-        cont.add_volume('/etc/passwd', '/etc/passwd', 'ro')
-        cont.add_volume('/etc/shadow', '/etc/shadow', 'ro')
-        cont.add_volume('/etc/sudoers.d', '/etc/sudoers.d', 'ro')
-
         if msdir:
             md = '/home/%s/msdir'%USER
             cont.add_volume(msdir, md)
@@ -204,6 +200,7 @@ class StimelaJob(object):
             os.mkdir(output)
 
         od = '/home/%s/output'%USER
+        cont.add_environ('HOME', od)
         self.logfile = cont.logfile = '{0}/log-{1}.txt'.format(output, name.split('-')[0])
         cont.add_volume(output, od)
         cont.add_environ('OUTPUT', od)
@@ -282,7 +279,7 @@ class Recipe(object):
         self.proc_logger.write()
 
         self.log.info('---------------------------------')
-        self.log.info('Stimlela version {0}'.format(version.version))
+        self.log.info('Stimela version {0}'.format(version.version))
         self.log.info('Sphesihle Makhathini <sphemakh@gmail.com>')
         self.log.info('Running: {:s}'.format(self.name))
         self.log.info('---------------------------------')
@@ -477,17 +474,15 @@ class Recipe(object):
                 self.log.info('Saving pipeline information in {}'.format(self.resume_file))
                 utils.writeJson(self.resume_file, recipe)
 
-                pe = PipelineException(e, self.completed, job, self.remaining)
-
-                raise pe, None, sys.exc_info()[2]
                 self.proc_logger.remove('processes', self.pid)
                 self.proc_logger.write()
+                pe = PipelineException(e, self.completed, job, self.remaining)
+                raise pe, None, sys.exc_info()[2]
 
             finally:
                 if job.jtype == 'docker' and job.created:
                     job.job.stop()
                     job.job.remove()
-
 
         self.proc_logger.remove('processes', self.pid)
         self.proc_logger.write()
