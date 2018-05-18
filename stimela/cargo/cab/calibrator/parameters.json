@@ -1,7 +1,7 @@
 {
     "task": "calibrator", 
     "base": "stimela/meqtrees", 
-    "tag": "0.3.0", 
+    "tag": "1.0.0", 
     "description": "Uses MeqTrees to calibrate a measurement set, given a sky model (Gaussians and point sources, and/or visibility data in MODEL_DATA column)", 
     "prefix": " ", 
     "binary": "/usr/bin/meqtree-pipeliner.py", 
@@ -33,6 +33,12 @@
             "dtype": "bool", 
             "default": false, 
             "name": "add-vis-model"
+        }, 
+        {
+            "info": "Visbility model column", 
+            "dtype": "str", 
+            "default": "MODEL_DATA", 
+            "name": "model-column"
         }, 
         {
             "info": "Label for gain and diagnostic plots from the caibration. May not be needed if 'prefix' is provided.", 
@@ -246,7 +252,7 @@
             "info": "Solution intervals in time and frequency in time/frequency bins. Should be given as a list of two integers", 
             "dtype": "list:int", 
             "default": null, 
-            "name": "Gjones-smooothing-intervals"
+            "name": "Gjones-smoothing-intervals"
         }, 
         {
             "info": "Gjones amplitude clipping", 
@@ -289,6 +295,67 @@
             "dtype": "file", 
             "default": null, 
             "name": "Gjones-gain-table", 
+            "io": "output"
+        }, 
+        {
+            "info": "Enable Bjones direction dependent calibration ", 
+            "dtype": "bool", 
+            "default": false, 
+            "name": "Bjones"
+        }, 
+        {
+            "info": "Solution intervals in time and frequency in time/frequency bins for Bjones. Should be given as a list of two integers", 
+            "dtype": "list:int", 
+            "default": null, 
+            "name": "Bjones-solution-intervals"
+        }, 
+        {
+            "info": "Solution intervals in time and frequency in time/frequency bins for Bjones. Should be given as a list of two integers", 
+            "dtype": "list:int", 
+            "default": null, 
+            "name": "Bjones-smoothing-intervals"
+        }, 
+        {
+            "info": "Bjones amplitude clipping", 
+            "dtype": "bool", 
+            "default": false, 
+            "name": "Bjones-ampl-clipping"
+        }, 
+        {
+            "info": "Bjones chi square clipping", 
+            "dtype": "bool", 
+            "default": false, 
+            "name": "Bjones-chisq-clipping"
+        }, 
+        {
+            "info": "Bjones threshold level", 
+            "dtype": "float", 
+            "default": 10, 
+            "name": "Bjones-thresh-sigma"
+        }, 
+        {
+            "info": "Bjones flagging amplitude", 
+            "dtype": "float", 
+            "default": 0.2, 
+            "name": "Bjones-ampl-clipping-low"
+        }, 
+        {
+            "info": "Bjones flagging amplitude", 
+            "dtype": "float", 
+            "default": 1.8, 
+            "name": "Bjones-ampl-clipping-high"
+        }, 
+        {
+            "info": "Apply existing gains", 
+            "dtype": "bool", 
+            "default": false, 
+            "name": "Bjones-apply-only"
+        }, 
+        {
+            "info": "B Jones gain table file name", 
+            "dtype": "file", 
+            "default": null, 
+            "name": "Bjones-gain-table", 
             "io": "output"
         }, 
         {

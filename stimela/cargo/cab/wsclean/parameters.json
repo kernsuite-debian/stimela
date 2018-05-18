@@ -1,7 +1,7 @@
 {
     "task": "wsclean", 
     "base": "stimela/wsclean", 
-    "tag": "0.3.0", 
+    "tag": "1.0.0", 
     "description": "WSClean imaging software", 
     "prefix": "-", 
     "binary": "/usr/bin/wsclean", 
@@ -27,7 +27,8 @@
             "info": "Specify number of computing threads to use, i.e., number of cpu cores that will be used. None means use all  cores", 
             "dtype": "int", 
             "default": null, 
-            "name": "threads"
+            "name": "threads", 
+            "mapping": "j"
         }, 
         {
             "info": "Limit memory usage to the given fraction of the total system memory. This is an approximate value.", 
@@ -99,7 +100,8 @@
             "info": "Save the gridded uv plane, i.e., the FFT of the residual image. The UV plane is complex, hence two images will be output: <prefix>-uv-real.fits and <prefix>-uv-imag.fits", 
             "dtype": "bool", 
             "default": false, 
-            "name": "saveuv"
+            "name": "saveuv", 
+            "mapping": "save-uv"
         }, 
         {
             "info": "Assume the visibilities have already been beam-corrected for the reference direction.", 
@@ -117,13 +119,15 @@
             "info": "Increase the weight gridding box size, similar to Casa's superuniform weighting scheme. The factor can be rational and can be less than one for subpixel weighting.", 
             "dtype": "float", 
             "default": 1.0, 
-            "name": "superweight"
+            "name": "superweight", 
+            "mapping": "super-weight"
         }, 
         {
             "info": "In spectral mode, calculate the weights as if the image was made using MFS. This makes sure that the sum of channel images equals the MFS weights. Otherwise, the channel image will become a bit more naturally weighted. This is only relevant for weighting modes that require gridding (i.e., Uniform, Briggs').", 
             "dtype": "bool", 
             "default": false, 
-            "name": "nomfsweighting"
+            "name": "nomfsweighting", 
+            "mapping": "no-mfs-weighting"
         }, 
         {
             "info": "Filter the weights and set high weights to the local mean. The level parameter specifies the filter level; any value larger than level*localmean will be set to level*localmean.", 
@@ -209,7 +213,8 @@
             "info": "Splits the bandwidth and makes count nr. of images", 
             "dtype": "int", 
             "default": 1, 
-            "name": "channelsout"
+            "name": "channelsout", 
+            "mapping": "channels-out"
         }, 
         {
             "info": "Use the minimum suggested w-layers for an image of the given size. Can e.g. be used to increase accuracy when predicting small part of full image.", 
@@ -227,13 +232,15 @@
             "info": "Perform inversion at the Nyquist resolution and upscale the image to the requested image size afterwards. This speeds up inversion considerably, but makes aliasing slightly worse. This effect is in most cases <1%", 
             "dtype": "bool", 
             "default": false, 
-            "name": "nosmallinversion"
+            "name": "nosmallinversion", 
+            "mapping": "no-small-inversion"
         }, 
         {
             "info": " Kernel and mode used for gridding: kb = Kaiser-Bessel (default with 7 pixels), nn = nearest neighbour (no kernel), rect = rectangular window.", 
-            "dtype": "str", 
-            "default": "kb", 
             "name": "gridmode", 
+            "default": "kb", 
+            "dtype": "str", 
+            "mapping": "grid-mode", 
             "choices": [
                 "nn", 
                 "kb", 
@@ -244,7 +251,8 @@
             "info": "Gridding antialiasing kernel size", 
             "dtype": "int", 
             "default": 7, 
-            "name": "gkernelsize"
+            "name": "gkernelsize", 
+            "mapping": "kernel-size"
         }, 
         {
             "info": "Oversampling factor used during gridding", 
@@ -268,7 +276,8 @@
             "info": "Save the gridding correction image. This shows the effect of the antialiasing filter", 
             "dtype": "bool", 
             "default": false, 
-            "name": "savegridding"
+            "name": "savegridding", 
+            "mapping": "save-gridding"
         }, 
         {
             "info": "Predict via a direct Fourier transform. This is slow, but can account for direction-dependent effects. This has only effect when 'mgain' is set or 'predict' is given.", 
@@ -331,13 +340,15 @@
             "info": "Number of intervals to image inside the selected global interval", 
             "dtype": "int", 
             "default": 1, 
-            "name": "intervalsout"
+            "name": "intervalsout", 
+            "mapping": "intervals-out"
         }, 
         {
             "info": "Only image the given channel range. Indices specify channel indices, end index is exclusive", 
             "dtype": "list:int", 
             "default": null, 
-            "name": "channelrange"
+            "name": "channelrange", 
+            "mapping": "channel-range"
         }, 
         {
             "info": "Image the given field id. Default: first field (id 0)", 
@@ -414,13 +425,13 @@
             "info": "Instead of using a single RMS for auto thresholding/masking, use a spatially varying RMS image", 
             "dtype": "bool", 
             "default": false, 
-            "name": "rms-background"
+            "name": "local-rms"
         }, 
         {
             "info": "Size of window for creating the RMS background map, in number of PSFs.", 
             "dtype": "int", 
             "default": null, 
-            "name": "rms-background-window"
+            "name": "local-rms-window"
         }, 
         {
             "info": "Either 'rms' (default, uses sliding window RMS) or 'rms-with-min' (use max(window rms,1.5/5window min))", 
@@ -448,13 +459,15 @@
             "info": "Perform cleaning by searching for peaks in the sum of squares of the polarizations, but subtract components from the individual images. Only possible when imaging two or four Stokes or linear parameters", 
             "dtype": "bool", 
             "default": false, 
-            "name": "joinpolarizations"
+            "name": "joinpolarizations", 
+            "mapping": "join-polarizations"
         }, 
         {
             "info": "Perform cleaning by searching for peaks in the MFS image, but subtract components from individual channels. This will turn on mfsweighting by default", 
             "dtype": "bool", 
             "default": false, 
-            "name": "joinchannels"
+            "name": "joinchannels", 
+            "mapping": "join-channels"
         }, 
         {
             "info": "Clean on different scales. This is a new algorithm. This parameter invokes the v1.9 multiscale algorithm, which is slower but more accurate compared to the older algorithm, and therefore the recommended one to use. The older algorithm is now invoked with 'fast-multiscale'.", 
@@ -496,39 +509,38 @@
             "info": "Set the border size in which no cleaning is performed, in percentage of the width/height of the image. With an image size of 1000 and clean border of 1%, each border is 10 pixels.", 
             "dtype": "float", 
             "default": null, 
-            "name": "cleanborder"
+            "name": "cleanborder", 
+            "mapping": "clean-border"
         }, 
         {
             "info": "Use the specified fits-file as mask during cleaning.", 
-            "dtype": "file", 
-            "default": null, 
             "name": "fitsmask", 
-            "io": "input"
+            "io": "input", 
+            "default": null, 
+            "dtype": "file", 
+            "mapping": "fits-mask"
         }, 
         {
             "info": "Use the specified CASA mask as mask during cleaning.", 
-            "dtype": "file", 
-            "default": null, 
             "name": "casamask", 
-            "io": "input"
-        }, 
-        {
-            "info": "Resize the psf to speed up minor clean iterations", 
-            "dtype": "bool", 
-            "default": false, 
-            "name": "smallpsf"
+            "io": "input", 
+            "default": null, 
+            "dtype": "file", 
+            "mapping": "casa-mask"
         }, 
         {
             "info": "Do not allow negative components during cleaning", 
             "dtype": "bool", 
             "default": false, 
-            "name": "nonegative"
+            "name": "nonegative", 
+            "mapping": "no-negative"
         }, 
         {
             "info": "Stop on negative components", 
             "dtype": "bool", 
             "default": false, 
-            "name": "stopnegative"
+            "name": "stopnegative", 
+            "mapping": "stop-negative"
         }, 
         {
             "info": "Fit a polynomial over frequency to each clean component. This has only effect when the channels are joined with 'joinchannels'", 
@@ -558,43 +570,56 @@
             "info": "Set a circular beam size (FWHM) in arcsec for restoring the clean components.", 
             "dtype": "float", 
             "default": null, 
-            "name": "beamsize"
+            "name": "beamsize", 
+            "mapping": "beam-size"
         }, 
         {
             "info": "Set the FWHM beam shape for restoring the clean components. Defaults units for maj and min are arcsec, and degrees for PA. Can be overriden, e.g. 'beamshape 1amin 1amin 3deg'. Default is use PSF FWHM sizes", 
             "dtype": "list:int", 
             "default": null, 
-            "name": "beamshape"
+            "name": "beamshape", 
+            "mapping": "beam-shape"
         }, 
         {
             "info": "Determine beam shape by fitting the PSF.", 
             "dtype": "bool", 
             "default": true, 
-            "name": "fitbeam"
+            "name": "fitbeam", 
+            "mapping": "fit-beam"
         }, 
         {
             "info": "Write the beam in output fits files as calculated from the longest projected baseline. This method results in slightly less accurate beam size/integrated fluxes, but provides a beam size without making the PSF for quick imaging.", 
             "dtype": "bool", 
             "default": false, 
-            "name": "theoreticbeam"
+            "name": "theoreticbeam", 
+            "mapping": "theoretic-beam"
         }, 
         {
             "info": "Do not determine beam shape from the PSF", 
             "dtype": "bool", 
             "default": false, 
-            "name": "nofitbeam"
+            "name": "nofitbeam", 
+            "mapping": "no-fit-beam"
         }, 
         {
             "info": "Force restoring beam to be circular", 
             "dtype": "bool", 
             "default": false, 
-            "name": "circularbeam"
+            "name": "circularbeam", 
+            "mapping": "circular-beam"
         }, 
         {
             "info": "Allow restoring beam to be elliptical", 
             "dtype": "bool", 
             "default": true, 
-            "name": "ellipticalbeam"
+            "name": "ellipticalbeam", 
+            "mapping": "elliptical-beam"
+        }, 
+        {
+            "info": "Factor to increase the image size", 
+            "dtype": "float", 
+            "default": null, 
+            "name": "padding"
         }
     ]
 }

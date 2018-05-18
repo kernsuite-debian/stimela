@@ -1,17 +1,19 @@
-from __future__ import print_function
 import os
 import sys
+import logging
+import Crasa.Crasa as crasa
 
-import drivecasa
-casa = drivecasa.Casapy(log2term=True, echo_to_stdout=True, timeout=24*3600)
-
-sys.path.append('/utils')
+sys.path.append("/utils")
 import utils
 
-CONFIG = os.environ['CONFIG']
+CONFIG = os.environ["CONFIG"]
+INPUT = os.environ["INPUT"]
+OUTPUT = os.environ["OUTPUT"]
+MSDIR = os.environ["MSDIR"]
+
 cab = utils.readJson(CONFIG)
 
-params = {}
+args = {}
 for param in cab['parameters']:
     name = param['name']
     value = param['value']
@@ -19,31 +21,20 @@ for param in cab['parameters']:
     if value is None:
         continue
 
-    params[name] = value
+    args[name] = value
 
-port2fits = params.pop('port2fits', True)
-keep_casa_images = params.pop("keep_casa_images", False)
-script = ['clean(**{})'.format(params)]
 
-nterms = params.get("nterms", 1)
+prefix = args['imagename']
+port2fits = args.pop('port2fits', True)
+keep_casa_images = args.pop("keep_casa_images", False)
+
+task = crasa.CasaTask(cab["binary"], **args)
+task.run()
+
+nterms = args.get("nterms", 1)
 images = ["flux", "model", "residual", "psf", "image"]
 STD_IMAGES = images[:4]
 
-def log2term(result):
-    if result[0]:
-        out = '\n'.join(result[0])
-        sys.stdout.write(out)
-    if result[1]:
-        err = '\n'.join(result[1] if result[1] else [''])
-        failed = err.lower().find('an error occurred running task')>=0
-        if failed:
-            raise RuntimeError('CASA Task failed. See error message bellow \n {}'.format(err))
-        sys.stdout.write('WARNING:: SEVERE messages from CASA run: \n {}'.format(err))
-
-result = casa.run_script(script, raise_on_severe=False)
-log2term(result)
-
-prefix = params['imagename']
 convert = []
 if port2fits:
     for image in images:
@@ -65,17 +56,14 @@ if port2fits:
             _images = [img]
         convert += _images
 
-script = []
 for _image in  convert:
     sys.stdout.write(_image)
     if _image in STD_IMAGES and (not os.path.exists(_image)):
         raise RuntimeError("Standard output from CASA clean task not found. Something went wrong durring cleaning, take a look at the logs and such")
 
     elif os.path.exists(_image):
-        script += ['exportfits(**{})'.format( dict(imagename=_image, fitsimage=_image+".fits", overwrite=True) )]
-
-result = casa.run_script(script, raise_on_severe=False)
-log2term(result)
+        task = crasa.CasaTask("exportfits", **dict(imagename=_image, fitsimage=_image+".fits", overwrite=True))
+        task.run()
 
 if not keep_casa_images:
     for _image in convert:
