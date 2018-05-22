@@ -74,11 +74,14 @@ outcol = jdict.pop("output", "CORRECTED_DATA")
 params["ms_sel.input_column"] = column
 params["ms_sel.output_column"] = outcol
 params["tiggerlsm.filename"] = skymodel
+params["tiggerlsm.lsm_subset"] = jdict.get("subset", "all")
 params["do_output"] = jdict.pop("output-data", "CORR_RES")
 saveconf = jdict.pop('save-config', None)
 params['ms_sel.ms_corr_sel'] = "'{}'".format(jdict.pop('correlations', '2x2'))
 
 label = jdict.pop("label", None)
+
+model_column = jdict.pop("model-column", 'MODEL_DATA')
 
 gjones = jdict.pop("Gjones", False)
 if gjones:
@@ -89,14 +92,12 @@ if gjones:
 
     gjones_gains = jdict.pop('Gjones-gain-table', None) or "{0}/{1}{2}.gain.cp".format(OUTPUT, msbase, "-%s"%label if label else "")
     params.update( {
+        "stefcal_gain.enabled" : 1,
         "stefcal_gain.mode" : mode, 
         "stefcal_gain.reset" : 0 if mode=="apply" else 1,
         "stefcal_gain.implementation" : jones_type,
-        "tiggerlsm.lsm_subset"  : jdict.get("subset", "all"),
         "stefcal_gain.timeint"  : time_int,
         "stefcal_gain.freqint"  : freq_int,
-        "stefcal_diffgain.freqsmooth" : freq_smooth,
-        "stefcal_diffgain.timesmooth" : time_smooth,
         "stefcal_gain.flag_ampl"    :   jdict.get("Gjones-ampl-clipping", 0),
         "stefcal_gain.flag_chisq"   :   jdict.get("Gjones-chisq-clipping", 0),
         "stefcal_gain.flag_chisq_threshold" :   jdict.get("Gjones-thresh-sigma", 10),
@@ -104,6 +105,31 @@ if gjones:
         "stefcal_gain.flag_ampl_high"   :   jdict.get("Gjones-ampl-clipping-high", 2),
         "stefcal_gain.implementation"   :   jdict.get("Gjones-matrix-type", "Gain2x2"),
         "stefcal_gain.table" : gjones_gains,
+    })
+
+bjones = jdict.pop("Bjones", False)
+if bjones:
+    
+    time_smooth, freq_smooth = jdict.get("Bjones-smoothing-intervals", (1,0))
+    time_int, freq_int = jdict.get("Bjones-solution-intervals", (1,0))
+    mode = 'apply' if jdict.get('Bjones-apply-only', False) else 'solve-save'
+
+    bjones_gains = jdict.pop('Bjones-gain-table', None) or "{0}/{1}{2}.gain1.cp".format(OUTPUT, msbase, "-%s"%label if label else "")
+    params.update( {
+        "stefcal_gain1.enabled" : 1,
+        "stefcal_gain1.label" : 'B',
+        "stefcal_gain1.mode" : mode, 
+        "stefcal_gain1.reset" : 0 if mode=="apply" else 1,
+        "stefcal_gain1.implementation" : jones_type,
+        "stefcal_gain1.timeint"  : time_int,
+        "stefcal_gain1.freqint"  : freq_int,
+        "stefcal_gain1.flag_ampl"    :   jdict.get("Bjones-ampl-clipping", 0),
+        "stefcal_gain1.flag_chisq"   :   jdict.get("Bjones-chisq-clipping", 0),
+        "stefcal_gain1.flag_chisq_threshold" :   jdict.get("Bjones-thresh-sigma", 10),
+        "stefcal_gain1.flag_ampl_low"    :   jdict.get("Bjones-ampl-clipping-low", 0.3),
+        "stefcal_gain1.flag_ampl_high"   :   jdict.get("Bjones-ampl-clipping-high", 2),
+        "stefcal_gain1.implementation"   :   jdict.get("Bjones-matrix-type", "Gain2x2"),
+        "stefcal_gain1.table" : bjones_gains,
     })
     
 beam = jdict.pop("Ejones", False)
@@ -122,8 +148,8 @@ if beam and beam_files_pattern:
 
 ddjones = jdict.pop("DDjones", False)
 if ddjones:
-    freq_int, freq_smooth = jdict.pop("DDjones-solution-intervals", (0,0))
-    time_smooth, freq_smooth = jdict.pop("DDjones-smoothing-intervals", (0,0))
+    time_int, freq_int = jdict.pop("DDjones-solution-intervals", (1,1))
+    time_smooth, freq_smooth = jdict.pop("DDjones-smoothing-intervals", (1,1))
 
     mode = 'apply' if jdict.get('DDjones-apply-only', False) else 'solve-save'
 
@@ -165,9 +191,9 @@ if ifrjones:
 makeplots = jdict.pop("make-plots", False)
 
 gjones_plotprefix = prefix+"-gjones_plots"
+bjones_plotprefix = prefix+"-bjones_plots"
 ddjones_plotprefix = prefix+"-ddjones_plots"
 ifrjones_plotprefix = prefix+"-ifrjones_plots"
-
 
 def run_meqtrees(msname):
 
@@ -177,7 +203,7 @@ def run_meqtrees(msname):
     options.update(params)
     if jdict.pop("add-vis-model", 0):
         options["read_ms_model"] = 1
-        options["ms_sel.model_column"] = "MODEL_DATA"
+        options["ms_sel.model_column"] = model_column
 
     taql = jdict.get('data-selection', None)
     if taql:
@@ -210,8 +236,12 @@ def run_meqtrees(msname):
             feed_type = "RL"
     
         if gjones:
-            print("Making Gain plots...")
+            print("Making Gain plots (G)...")
             plotgains.make_gain_plots(gjones_gains, prefix=gjones_plotprefix, feed_type=feed_type)
+
+        if bjones:
+            print("Making Gain plots (B)...")
+            plotgains.make_gain_plots(bjones_gains, gain_label='B', prefix=bjones_plotprefix, feed_type=feed_type)
     
         if ddjones:
             print("Making differential gain plots...")

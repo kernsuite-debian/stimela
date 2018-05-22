@@ -1,4 +1,4 @@
-FROM stimela/base:0.3.0
+FROM stimela/base:1.0.0
 
 RUN docker-apt-install python \
         qt5-qmake \
@@ -12,7 +12,7 @@ RUN pip install numpy \
         astropy
 
 RUN git clone https://github.com/SoFiA-Admin/SoFiA /build/sofia
-RUN cd /build/sofia && python setup.py install
+RUN cd /build/sofia && git checkout tags/v1.1.0 && python setup.py install 
 
 ENV SOFIA_MODULE_PATH="/build/sofia/build/lib.linux-x86_64-2.7"
 ENV SOFIA_PIPELINE_PATH="/build/sofia/sofia_pipeline.py"
