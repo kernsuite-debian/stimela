@@ -1,7 +1,7 @@
 {
     "task": "casa_bandpass", 
     "base": "stimela/casa", 
-    "tag": "0.3.0", 
+    "tag": "1.0.0", 
     "description": "Calculates a bandpass calibration solution", 
     "prefix": "-", 
     "binary": "bandpass", 
@@ -60,7 +60,7 @@
         }, 
         {
             "info": "Scan number range", 
-            "dtype": "list:str", 
+            "dtype": "str", 
             "default": null, 
             "name": "scan"
         }, 

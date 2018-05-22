@@ -1,2 +1,2 @@
-FROM stimela/meqtrees:0.3.0
+FROM stimela/meqtrees:1.0.0
 RUN docker-apt-install python-tigger
