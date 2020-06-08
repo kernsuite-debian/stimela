@@ -1,11 +1,12 @@
 {
     "task": "simulator", 
     "base": "stimela/meqtrees", 
-    "tag": "1.0.0", 
+    "tag": "1.2.0", 
     "description": "Uses MeqTrees to simulate a sky model (Gaussians and point sources) into measurement set (MS)", 
     "prefix": " ", 
     "binary": "meqtree-pipeliner.py", 
-    "msdir": true, 
+    "msdir": true,
+    "junk" : ["core"],
     "parameters": [
         {
             "info": "MS to simulate sky model into", 
@@ -51,6 +52,12 @@
                 "subtract", 
                 "add"
             ]
+        }, 
+        {
+            "info": "Size of tile (time bins) to process. Can be used to reduce memory footprint", 
+            "dtype": "int", 
+            "default": 16, 
+            "name": "tile-size"
         }, 
         {
             "info": "Sky model to be simulated", 
@@ -104,8 +111,8 @@
         {
             "info": "SPW ID", 
             "dtype": "int", 
-            "name": "spw-id", 
-            "defaut": 0
+            "default": 0, 
+            "name": "spw-id"
         }, 
         {
             "info": "Noise to add to visibility data. In Jy", 

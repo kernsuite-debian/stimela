@@ -1,11 +1,13 @@
-FROM stimela/base:1.0.0
-MAINTAINER <sphemakh@gmail.com>
+FROM stimela/base:1.2.5
 RUN docker-apt-install casacore-dev \
-        libboost-python-dev \
-        libcfitsio3-dev \
-        wcslib-dev
-RUN pip install -U pip setuptools wheel
-RUN pip install -U numpy
-RUN pip install -I git+https://github.com/ska-sa/montblanc
-RUN pip install -I git+https://github.com/ratt-ru/CubiCal
-ENV NUMBA_CACHE_DIR /tmp
+    casacore-data \
+    build-essential \
+    python3-pip \
+    libboost-all-dev \
+    wcslib-dev \
+    git \
+    libcfitsio-dev
+RUN update-alternatives --install /usr/bin/python python /usr/bin/python3.6 10
+RUN pip3 install --upgrade --force pip
+RUN pip install "cubical[lsm-support]@git+https://github.com/ratt-ru/CubiCal.git@v1.5.3"
+RUN gocubical --help

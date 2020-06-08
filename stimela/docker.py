@@ -1,13 +1,15 @@
+# -*- coding: future_fstrings -*-
 import subprocess
 import os
 import sys
-from cStringIO import StringIO as io
+from io import StringIO
 from stimela import utils
 import json
 import stimela
 import time
 import datetime
 import tempfile
+
 
 class DockerError(Exception):
     pass
@@ -22,37 +24,37 @@ def build(image, build_path, tag=None, build_args=None, fromline=None, args=[]):
     bdir = tempfile.mkdtemp()
     os.system('cp -r {0:s}/* {1:s}'.format(build_path, bdir))
     if build_args:
-        stdw = tempfile.NamedTemporaryFile(dir=bdir)
+        stdw = tempfile.NamedTemporaryFile(dir=bdir, mode='w')
         with open("{}/Dockerfile".format(bdir)) as std:
             dfile = std.readlines()
-
         for line in dfile:
             if fromline and line.lower().startswith('from'):
                 stdw.write('FROM {:s}\n'.format(fromline))
-            elif line.lower().startswith("cmd"):
+            elif line.lower().startswith("cmd") or line == dfile[-1]:
                 for arg in build_args:
                     stdw.write(arg+"\n")
                 stdw.write(line)
             else:
                 stdw.write(line)
         stdw.flush()
-        utils.xrun("docker build", args+["--force-rm","-f", stdw.name, 
-                   "-t", image, 
-                    bdir])
+        utils.xrun("docker build", args+["--force-rm", "-f", stdw.name,
+                                         "-t", image,
+                                         bdir])
 
         stdw.close()
     else:
-        utils.xrun("docker build", args+["--force-rm", "-t", image, 
-                    bdir])
+        utils.xrun("docker build", args+["--force-rm", "-t", image,
+                                         bdir])
 
     os.system('rm -rf {:s}'.format(bdir))
-    
-def pull(image, tag=None):
+
+
+def pull(image, tag=None, force=False):
     """ pull a docker image """
     if tag:
         image = ":".join([image, tag])
 
-    utils.xrun("docker pull", [image])
+    utils.xrun("docker", ["pull", image])
 
 
 def seconds_hms(seconds):
@@ -60,52 +62,56 @@ def seconds_hms(seconds):
 
 
 class Container(object):
-    def __init__(self, image, name, 
+    def __init__(self, image, name,
                  volumes=None, environs=None,
-                 label="", logger=None, 
-                 shared_memory="1gb",
-                 log_container=None):
+                 label="", logger=None,
+                 time_out=-1,
+                 workdir=None,
+                 log_container=None,
+                 cabname=None,
+                 runscript=None):
         """
         Python wrapper to docker engine tools for managing containers.
         """
-    
+
         self.image = image
         self.name = name
+        self.cabnane = cabname
         self.label = label
         self.volumes = volumes or []
         self.environs = environs or []
         self.logger = logger
         self.status = None
-        self.WORKDIR = None
-        self.COMMAND = None
-        self.shared_memory = shared_memory
+        self.WORKDIR = workdir
+        self.RUNSCRIPT = runscript
         self.PID = os.getpid()
         self.uptime = "00:00:00"
+        self.time_out = time_out
+        self.cont_logger = utils.logger.StimelaLogger(
+            log_container or stimela.LOG_FILE, jtype="docker")
 
-        self.cont_logger = utils.logger.StimelaLogger(log_container or stimela.LOG_FILE)
+    def add_volume(self, host, container, perm="rw", noverify=False):
 
-
-    def  add_volume(self, host, container, perm="rw"):
-
-        if os.path.exists(host):
+        if os.path.exists(host) or noverify:
             if self.logger:
-                self.logger.debug("Mounting volume [{0}] in container [{1}] at [{2}]".format(host, self.name, container))
+                self.logger.debug("Mounting volume [{0}] in container [{1}] at [{2}]".format(
+                    host, self.name, container))
             host = os.path.abspath(host)
         else:
-            raise IOError("Directory {0} cannot be mounted on container: File doesn't exist".format(host))
-        
-        self.volumes.append(":".join([host,container,perm]))
+            raise IOError(
+                "Directory {0} cannot be mounted on container: File doesn't exist".format(host))
 
+        self.volumes.append(":".join([host, container, perm]))
 
     def add_environ(self, key, value):
         if self.logger:
-            self.logger.debug("Adding environ varaible [{0}={1}] in container {2}".format(key, value, self.name))
+            self.logger.debug("Adding environ varaible [{0}={1}] in container {2}".format(
+                key, value, self.name))
         self.environs.append("=".join([key, value]))
-
 
     def create(self, *args):
 
-        if self.volumes: 
+        if self.volumes:
             volumes = " -v " + " -v ".join(self.volumes)
         else:
             volumes = ""
@@ -113,32 +119,34 @@ class Container(object):
             environs = environs = " -e "+" -e ".join(self.environs)
         else:
             environs = ""
-        
-        self._print("Instantiating container [{}]. The container ID is printed below.".format(self.name))
-        utils.xrun("docker create", list(args) + [volumes, environs,
-                        "-w %s"%(self.WORKDIR) if self.WORKDIR else "",
-                        "--name", self.name, "--shm-size", self.shared_memory,
-                        self.image,
-                        self.COMMAND or ""])
+
+        self._print(
+            "Instantiating container [{}]. The container ID is printed below.".format(self.name))
+        utils.xrun("docker create", list(args) + [volumes, environs, "--rm",
+                                                  "-w %s" % (self.WORKDIR),
+                                                  "--name", self.name,
+                                                  self.image,
+                                                  self.RUNSCRIPT or ""], log=self.logger)
 
         self.status = "created"
 
     def info(self):
 
-        output = subprocess.check_output("docker inspect {}".format(self.name), shell=True)
-        output_file = io(output[3:-3])
+        output = subprocess.check_output(
+            "docker inspect {}".format(self.name), shell=True).decode()
+        output_file = StringIO(output[3:-3])
         jdict = json.load(output_file)
         output_file.close()
 
         return jdict
-    
-    
+
     def get_log(self):
-        stdout = open(self.logfile, 'a+')
+        stdout = open(self.logfile, 'w')
         exit_status = subprocess.call("docker logs {0}".format(self.name),
-                            stdout=stdout, stderr=stdout, shell=True)
-        if exit_status !=0:
-            self.logger.warn('Could not log container: {}. Something went wrong durring execution'.format(self.name))
+                                      stdout=stdout, stderr=stdout, shell=True)
+        if exit_status != 0:
+            self.logger.warn(
+                'Could not log container: {}. Something went wrong durring execution'.format(self.name))
             output = 'Task was not started.'
             stdout.write(output)
         else:
@@ -147,28 +155,28 @@ class Container(object):
         stdout.close()
         return output
 
-        
-    def start(self):
+    def start(self, output_wrangler=None):
         running = True
         tstart = time.time()
         self.status = "running"
-        
+
         self.cont_logger.log_container(self.name)
         self.cont_logger.write()
-        try:
-            utils.xrun("docker", ["start", "-a", self.name])
-        except KeyboardInterrupt:
-            utils.xrun("docker", ["kill", self.name])
-            raise 
-           
+        self._print("Starting container [{0:s}]. Timeout set to {1:d}. The container ID is printed below.".format(
+            self.name, self.time_out))
+        utils.xrun("docker", ["start", "-a", self.name],
+                       timeout=self.time_out,
+                       logfile=self.logfile,
+                       log=self.logger, output_wrangler=output_wrangler,
+                       kill_callback=lambda: utils.xrun("docker", ["kill", self.name]))
         uptime = seconds_hms(time.time() - tstart)
         self.uptime = uptime
-        self._print("Container [{0}] has executed successfully".format(self.name))
+        self._print(
+            "Container [{0}] has executed successfully".format(self.name))
 
         self._print("Runtime was {0}.".format(uptime))
-        
-        self.status = "exited"
 
+        self.status = "exited"
 
     def stop(self):
         dinfo = self.info()
@@ -186,6 +194,15 @@ class Container(object):
             self.remove()
             raise KeyboardInterrupt
 
+    def image_exists(self):
+        """
+            Check if image exists 
+        """
+        image_ids = subprocess.check_output(f"docker images -q {self.image}".split())
+        if image_ids:
+            return True
+        else:
+            return False
 
     def remove(self):
         dinfo = self.info()
@@ -198,9 +215,10 @@ class Container(object):
                 killed = True
             if killed:
                 raise KeyboardInterrupt
-           
+
         else:
-            raise DockerError("Container [{}] has not been stopped, cannot remove".format(self.name))
+            raise DockerError(
+                "Container [{}] has not been stopped, cannot remove".format(self.name))
 
         self.cont_logger.remove('containers', self.name)
         self.cont_logger.write()
