@@ -1,10 +1,12 @@
 {
     "task": "fitstool", 
-    "base": "stimela/meqtrees", 
-    "tag": "1.0.0", 
+    "base": "stimela/owlcat", 
+    "tag": "1.2.5-1",
+    "version" : "1.6.0",
     "description": "Convinience tools for manipulating FITS images", 
     "prefix": "--", 
-    "binary": "fitstool.py", 
+    "binary": "fitstool.py",
+    "junk":[],
     "msdir": "false", 
     "parameters": [
         {
@@ -13,7 +15,7 @@
             "io": "input", 
             "default": null, 
             "dtype": "list:file", 
-            "required": true
+            "required": false
         }, 
         {
             "info": "Output image", 
@@ -110,7 +112,7 @@
         {
             "info": "Stack a list of FITS images along a given axis. This axis may given as an integer(as it appears in the NAXIS keyword), or as a string (as it appears in the CTYPE keyword)", 
             "dtype": "bool", 
-            "default": null, 
+            "default": false, 
             "name": "stack"
         }, 
         {
@@ -163,6 +165,14 @@
             "dtype": "bool", 
             "default": false, 
             "name": "stats"
+        },
+        {
+            "info": "Speicfy input images via a pattern string, e.g, prefix*June2016.fits",
+            "name" : "file_pattern",
+            "dtype": "file",
+            "io": "input",
+            "check_io": false,
+            "default": null
         }
     ]
 }

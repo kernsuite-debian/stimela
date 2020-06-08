@@ -1,16 +1,21 @@
 import os
 import sys
-
-sys.path.append('/utils')
-import utils
-
+import subprocess
+import glob
+import yaml
+import shlex
+import shutil
 
 CONFIG = os.environ["CONFIG"]
 INPUT = os.environ["INPUT"]
 OUTPUT = os.environ["OUTPUT"]
 MSDIR = os.environ["MSDIR"]
 
-cab = utils.readJson(CONFIG)
+with open(CONFIG, "r") as _std:
+    cab = yaml.safe_load(_std)
+
+junk = cab["junk"]
+
 args = []
 for param in cab['parameters']:
     name = param['name']
@@ -30,7 +35,7 @@ for param in cab['parameters']:
 
     # Positional arguments
     if name == 'input-image':
-        inim= value
+        inim = value
         continue
 
     elif name == 'input-skymodel':
@@ -41,6 +46,19 @@ for param in cab['parameters']:
         outim = value
         continue
 
-    args.append( '{0}{1} {2}'.format(cab['prefix'], name, value) )
+    args.append('{0}{1} {2}'.format(cab['prefix'], name, value))
 
-utils.xrun(cab['binary'], args+[inim, inlsm, outim])
+
+_runc = " ".join([cab['binary']] + args + [inim, inlsm, outim])
+
+try:
+    subprocess.check_call(shlex.split(_runc))
+finally:
+    for item in junk:
+        for dest in [OUTPUT, MSDIR]: # these are the only writable volumes in the container
+            items = glob.glob("{dest}/{item}".format(**locals()))
+            for f in items:
+                if os.path.isfile(f):
+                    os.remove(f)
+                elif os.path.isdir(f):
+                    shutil.rmtree(f)

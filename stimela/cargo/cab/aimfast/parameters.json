@@ -1,10 +1,11 @@
 {
-    "task": "aimfast", 
-    "base": "stimela/meqtrees", 
-    "tag": "1.0.0", 
-    "description": "An Astronomical Image Fedility Assessment Tool", 
+    "task": "aimfast",
+    "base": "stimela/aimfast",
+    "tag": "dev",
+    "description": "An Astronomical Image Fidelity Assessment Tool", 
     "prefix": "--", 
     "binary": "aimfast", 
+    "junk":[],
     "msdir": false, 
     "parameters": [
         {
@@ -13,7 +14,7 @@
             "io": "input", 
             "default": null, 
             "dtype": "file", 
-            "required": true
+            "required": false
         }, 
         {
             "info": "Model lsm.html/text file to extract peak source flux", 
@@ -37,6 +38,146 @@
             "required": false, 
             "name": "area-factor", 
             "dtype": "int"
+        }, 
+        {
+            "info": "Name of the point spread function file or psf size in arcsec", 
+            "name": "psf", 
+            "io": "input", 
+            "default": null, 
+            "dtype": [
+                "float", 
+                "file"
+            ], 
+            "required": false, 
+            "mapping": "psf-file"
+        }, 
+        {
+            "info": "Name of model to use for normality testing.", 
+            "name": "normality-test", 
+            "default": null, 
+            "dtype": "str", 
+            "required": false, 
+            "choices": [
+                "normaltest", 
+                "shapiro"
+            ]
+        }, 
+        {
+            "info": "Label", 
+            "dtype": "str", 
+            "name": "label"
+        }, 
+        {
+            "info": "Data range to perform normality testing", 
+            "default": null, 
+            "required": false, 
+            "name": "data-range", 
+            "dtype": "int"
+        }, 
+        {
+            "info": "Tigger model (text/lsm.html) files to compare",
+            "delimiter": " ",
+            "name": "compare-models",
+            "io": "output",
+            "default": null,
+            "dtype": "list:file",
+            "required": false
+        }, 
+        {
+            "info": "Residual (fits) files to compare. e.g: ['res1.fits', 'res2.fits']",
+            "delimiter": " ",
+            "name": "compare-residuals",
+            "io": "output",
+            "default": null,
+            "dtype": "list:file",
+            "required": false
+        }, 
+        {
+            "info": "Phase tracking centre of the catalog. e.g: J2000.0,0.0deg,-30.0", 
+            "default": null, 
+            "required": false, 
+            "name": "phase-centre", 
+            "dtype": "str"
+        }, 
+        {
+            "info": "Data points to randomly sample the residual/noise image", 
+            "default": null, 
+            "required": false, 
+            "name": "data-points", 
+            "dtype": "int"
+        },
+        {
+            "info": "Tolerance to cross-match sources in arcsec",
+            "default": null,
+            "required": false,
+            "name": "tolerance",
+            "dtype": "float"
+        },
+        {
+            "info": "Get stats of channels with pixel flux above thresh in Jy/Beam",
+            "default": null,
+            "required": false,
+            "name": "threshold",
+            "dtype": "float"
+        },
+        {
+            "info": "Get stats of specified channels e.g. '10~20;100~1000'",
+            "default": null,
+            "required": false,
+            "name": "channels",
+            "dtype": "str"
+        },
+        {
+            "info": "Window size to compute rms",
+            "default": null,
+            "required": false,
+            "name": "window-size",
+            "dtype": "int"
+        },
+        {
+            "info": "Step size of sliding window",
+            "default": null,
+            "required": false,
+            "name": "step-size",
+            "dtype": "int"
+        },
+        {
+            "info": "Name of the mask image fits file", 
+            "default": null, 
+            "required": false, 
+            "name": "mask-image", 
+            "io": "input",
+            "dtype": "file"
+        },
+        {
+            "info": "Name of the mask image fits file", 
+            "default": null, 
+            "required": false, 
+            "name": "outfile", 
+            "io": "output",
+            "dtype": "file"
+        },
+        {
+            "info": "Prefix of output html files",
+            "default": null,
+            "required": false,
+            "name": "html-prefix",
+            "dtype": "str"
+        },
+        {
+            "info": "Factor to multiply the field of view for random points. i.e. 0.0-1.0'",
+            "default": null,
+            "required": false,
+            "name": "fov-factor",
+            "dtype": "float"
+        },
+        {
+            "info": "aimfast fidelity results file (JSON format)",
+            "default": null,
+            "required": false,
+            "name": "fidelity-results",
+            "io": "output",
+            "dtype": "file"
         }
     ]
 }

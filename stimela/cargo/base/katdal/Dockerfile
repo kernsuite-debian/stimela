@@ -1,6 +1,11 @@
-FROM stimela/base:1.0.0
+FROM stimela/base:1.6.0
 MAINTAINER <sphemakh@gmail.com>
+RUN docker-apt-install libboost-dev \
+    casacore-dev \
+    gfortran
+RUN pip install -U six numpy
+RUN pip install katdal[ms,s3]
+RUN export NUMBA_CACHE_DIR=/dat
+RUN mvftoms.py -h
+RUN python --version
 
-RUN docker-apt-install casacore-dev python-casacore git python-pip
-RUN pip install -U pip pkginfo pyyaml
-RUN pip install -I git+https://github.com/ska-sa/katdal

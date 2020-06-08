@@ -1,10 +1,11 @@
 {
     "task": "curl", 
     "base": "stimela/curl", 
-    "tag": "1.0.0", 
+    "tag": "1.2.0", 
     "description": "Download data from a remote path", 
     "prefix": "--", 
-    "binary": "curl", 
+    "binary": "curl",
+    "junk":[],
     "msdir": false, 
     "parameters": [
         {

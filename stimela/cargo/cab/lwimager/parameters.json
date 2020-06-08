@@ -1,10 +1,11 @@
 {
     "task": "lwimager", 
     "base": "stimela/casarest", 
-    "tag": "1.0.0", 
+    "tag": "1.2.0", 
     "description": "Image and deconvolve a measurement set (MS)", 
     "prefix": " ", 
     "binary": "lwimager", 
+    "junk":[],
     "msdir": true, 
     "parameters": [
         {
@@ -180,7 +181,7 @@
             "name": "chanstart"
         }, 
         {
-            "info": "fre`iquency channel step per each spw. Comma separated string", 
+            "info": "frequency channel step per each spw. Comma separated string", 
             "dtype": [
                 "str", 
                 "int"
@@ -255,6 +256,19 @@
             ], 
             "default": 0, 
             "name": "threshold"
+        }, 
+        {
+            "info": "Noise image to compute sigma for stopping threshold (in case specified it will replace threshold)", 
+            "dtype": "file", 
+            "default": null, 
+            "name": "noise_image", 
+            "io": "input"
+        }, 
+        {
+            "info": "Noise sigma for stopping deconvolution in the case where noise_image is provided (new thresh = sigma*noise_image.std())", 
+            "dtype": "float", 
+            "default": 3, 
+            "name": "noise_sigma"
         }, 
         {
             "info": "Target flux for maximum entropy", 
@@ -377,6 +391,18 @@
             "dtype": "int", 
             "default": null, 
             "name": "stoppointmode"
+        }, 
+        {
+            "info": "Convert output images to FITS files", 
+            "dtype": "bool", 
+            "default": true, 
+            "name": "port2fits"
+        }, 
+        {
+            "info": "Keep casa images when 'port2fits' is enabled", 
+            "dtype": "bool", 
+            "default": false, 
+            "name": "keep_casa_images"
         }
     ]
 }

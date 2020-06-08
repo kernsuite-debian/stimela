@@ -1,0 +1,79 @@
+{
+    "task": "crystalball", 
+    "base": "stimela/codex-africanus", 
+    "tag": "1.3.2",
+    "version": "0.3.0",
+    "description": "Distributed prediction of visibilities from a sky model", 
+    "prefix": "--", 
+    "binary": "crystalball", 
+    "junk": [],
+    "msdir": true, 
+    "parameters": [
+        {
+            "info": "Input MS file.", 
+            "dtype": "file", 
+            "required": true, 
+            "name": "ms", 
+            "io": "msfile"
+        }, 
+        {
+            "info": "Name of file containing the sky model.", 
+            "dtype": "file", 
+            "name": "sky-model", 
+            "io": "input"
+        }, 
+        {
+            "info": "Output visibility column", 
+            "dtype": "str", 
+            "default": "MODEL_DATA", 
+            "name": "output-column"
+        }, 
+        {
+            "info": "Number of rows of input .MS that are processed in a single chunk. If zero, it will be set automatically.", 
+            "dtype": "int", 
+            "default": 0, 
+            "name": "row-chunks"
+        }, 
+        {
+            "info": "Number of sky model components that are processed in a single chunk. If 0 it will be set automatically.", 
+            "dtype": "int", 
+            "default": 0, 
+            "name": "model-chunks"
+        }, 
+        {
+            "info": "Optional. Give JS9 region file. Only sources within those regions will be included.", 
+            "dtype": "file",
+            "io": "input",
+            "required": false,
+            "name": "within"
+        }, 
+        {
+            "info": "Select only point-type sources.", 
+            "dtype": "bool", 
+            "default": false, 
+            "name": "points-only"
+        }, 
+        {
+            "info": "Select only N brightest sources.", 
+            "dtype": "int", 
+            "name": "num-sources"
+        }, 
+        {
+            "info": "Explicitly set the number of worker threads.", 
+            "dtype": "int", 
+            "name": "num-workers"
+        }, 
+        {
+            "info": "Fraction of system RAM that can be used. Used when setting automatically the chunk size.", 
+            "default": 0.5, 
+            "name": "memory-fraction", 
+            "dtype": "float"
+        },
+        {
+            "info": "The field name or id to be predicted. If not provided, only a single field may be present in the MS.",
+            "dtype": "str", 
+            "name": "field",
+            "default": null
+        }
+    ]
+}

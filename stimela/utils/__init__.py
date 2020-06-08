@@ -1,138 +1,34 @@
-import subprocess
-import signal
 import os
 import sys
-import logging
 import json
 import yaml
-import codecs
 import time
 import tempfile
 import inspect
 import warnings
 import re
 import math
+import codecs
 
-from multiprocessing import Process, Manager, Lock
-manager = Manager()
+class StimelaCabRuntimeError(RuntimeError):
+    pass
+
+class StimelaProcessRuntimeError(RuntimeError):
+    pass
+
+
 
 CPUS = 1
 
-def _logger(level=0, logfile=None):
-
-    if logfile:
-        logging.basicConfig(filename=logfile)
-    else:
-        logging.basicConfig()
-
-    LOGL = {"0": "INFO",
-            "1": "DEBUG",
-            "2": "ERROR",
-            "3": "CRITICAL"}
-
-    log = logging.getLogger("STIMELA")
-    log.setLevel(eval("logging."+LOGL[str(level)]))
-
-    return log
-
+from .xrun_poll import xrun
 
 def assign(key, value):
     frame = inspect.currentframe().f_back
     frame.f_globals[key] = value
 
 
-def xrun(command, options, log=None, _log_container_as_started=False, logfile=None):
-    """
-        Run something on command line.
-
-        Example: _run("ls", ["-lrt", "../"])
-    """
-
-    cmd = " ".join([command]+ map(str, options) )
-
-    if log:
-        log.info("Running: %s"%cmd)
-    else:
-        sys.stdout.write('running: %s\n'%cmd)
-
-    sys.stdout.flush()
-
-    process = subprocess.Popen(cmd,
-                  stderr=subprocess.PIPE if not isinstance(sys.stderr,file) else sys.stderr,
-                  stdout=subprocess.PIPE if not isinstance(sys.stdout,file) else sys.stdout,
-                  shell=True)
-    out, err = None, None
-    if process.stdout or process.stderr:
-
-        out, err = process.comunicate()
-        sys.stdout.write(out)
-        sys.stderr.write(err)
-        return out, err
-    else:
-        process.wait()
-    if process.returncode:
-         raise SystemError('%s: returns errr code %d'%(command, process.returncode))
-    return out, err
-
-
-def pper(iterable, command, cpus=None, stagger=2, logger=None):
-    """
-       Run command in parallel.
-       
-       iterable :  argument(s) to iterate over
-       command : callable command to run
-       cpus : number of cpus to use
-       stagger : stagger jobs (in seconds)
-       logger : logging instance
-    """
-
-    cpus = cpus or CPUS
-
-    if not hasattr(iterable, "__iter__"):
-        raise TypeError("Can not iterate over [%s]. Make its iterable"%iterable)
-
-    if not callable(command):
-        raise TypeError("command [%] is not callable"%(command.func_name))
-
-    message = "Iterating over :: %s"%repr(iterable)
-
-    if logger:
-        logger.info(message)
-    else:
-        print message
-
-    active = manager.Value("d", 0)
-    
-    def worker(*args):
-        command(*args)
-        active.value -= 1
-
-    nprocs = len(iterable)
-    counter = 0
-    procs = []
-
-    while counter <= nprocs-1:
-        if active.value >= cpus:
-            continue
-        
-        time.sleep(stagger)
-        active.value += 1
-        args = iterable[counter]
-
-        if not hasattr(args, "__iter__"):
-            args = (args,)
-
-        proc = Process(target=worker, args=args)
-        procs.append(proc)
-        proc.start()
-        counter += 1
-
-    for proc in procs:
-        proc.join()
-
-
 def readJson(conf):
-    with open(conf) as _std:
+    with open(conf, "r") as _std:
         jdict = yaml.safe_load(_std)
         return jdict
 
@@ -150,11 +46,11 @@ def get_Dockerfile_base_image(image):
         dockerfile = "{:s}/Dockerfile".format(image)
 
     with open(dockerfile, "r") as std:
-        _from = "" 
+        _from = ""
         for line in std.readlines():
             if line.startswith("FROM"):
                 _from = line
-        
+
     return _from
 
 
@@ -172,8 +68,10 @@ def change_Dockerfile_base_image(path, _from, label, destdir="."):
             if line.startswith("FROM"):
                 lines.remove(line)
 
-    temp_dir = tempfile.mkdtemp(prefix="tmp-stimela-{:s}-".format(label), dir=destdir)
-    xrun("cp", ["-r", "{:s}/Dockerfile {:s}/src".format(dirname, dirname), temp_dir])
+    temp_dir = tempfile.mkdtemp(
+        prefix="tmp-stimela-{:s}-".format(label), dir=destdir)
+    xrun(
+        "cp", ["-r", "{:s}/Dockerfile {:s}/src".format(dirname, dirname), temp_dir])
 
     dockerfile = "{:s}/Dockerfile".format(temp_dir)
 
@@ -187,8 +85,8 @@ def change_Dockerfile_base_image(path, _from, label, destdir="."):
 
 
 def get_base_images(logfile, index=1):
-    
-    with open(logfile) as std:
+
+    with opEn(logfile, "r") as std:
         string = std.read()
 
     separator = "[================================DONE==========================]"
@@ -198,15 +96,15 @@ def get_base_images(logfile, index=1):
     images = []
 
     for line in log.split("\n"):
-        if line.find("<=BASE_IMAGE=>")>0:
+        if line.find("<=BASE_IMAGE=>") > 0:
             tmp = line.split("<=BASE_IMAGE=>")[-1]
             image, base = tmp.split("=")
             images.append((image.strip(), base))
-    
+
     return images
 
 
-def icasa(taskname, mult=None, clearstart=False, loadthese=[],**kw0):
+def icasa(taskname, mult=None, clearstart=False, loadthese=[], **kw0):
     """ 
       runs a CASA task given a list of options.
       A given task can be run multiple times with a different options, 
@@ -226,14 +124,15 @@ def icasa(taskname, mult=None, clearstart=False, loadthese=[],**kw0):
         loadthese.append("os")
 
     if loadthese:
-        exclude = filter(lambda line: line.startswith("import") or line.startswith("from"), loadthese)
+        exclude = filter(lambda line: line.startswith("import")
+                         or line.startswith("from"), loadthese)
         for line in loadthese:
             if line not in exclude:
-                line = "import %s"%line
-            _load += "%s\n"%line
+                line = "import %s" % line
+            _load += "%s\n" % line
 
     if mult:
-        if isinstance(mult,(tuple,list)):
+        if isinstance(mult, (tuple, list)):
             for opts in mult:
                 opts.update(kw0)
         else:
@@ -245,10 +144,10 @@ def icasa(taskname, mult=None, clearstart=False, loadthese=[],**kw0):
     run_cmd = """ """
     for kw in mult:
         task_cmds = []
-        for key,val in kw.iteritems():
-            if isinstance(val,(str, unicode)):
-                 val = '"%s"'%val
-            task_cmds .append('%s=%s'%(key,val))
+        for key, val in kw.items():
+            if isinstance(val, (str, unicode)):
+                val = '"%s"' % val
+            task_cmds .append('%s=%s' % (key, val))
 
         task_cmds = ", ".join(task_cmds)
         run_cmd += """ 
@@ -256,21 +155,21 @@ def icasa(taskname, mult=None, clearstart=False, loadthese=[],**kw0):
 os.chdir('%s')
 %s
 %s(%s)
-"""%(_load, cdir,"clearstart()" if clearstart else "", taskname, task_cmds)
+""" % (_load, cdir, "clearstart()" if clearstart else "", taskname, task_cmds)
 
     tf = tempfile.NamedTemporaryFile(suffix='.py')
     tf.write(run_cmd)
     tf.flush()
     t0 = time.time()
-    # all logging information will be in the pyxis log files 
+    # all logging information will be in the pyxis log files
     print("Running {}".format(run_cmd))
     xrun("cd", [td, "&& casa --nologger --log2term --nologfile -c", tf.name])
 
-    # log taskname.last 
-    task_last = '%s.last'%taskname
+    # log taskname.last
+    task_last = '%s.last' % taskname
     if os.path.exists(task_last):
-        with open(task_last,'r') as last:
-            print('%s.last is: \n %s'%(taskname, last.read()))
+        with opEn(task_last, 'r') as last:
+            print('%s.last is: \n %s' % (taskname, last.read()))
 
     # remove temp directory. This also gets rid of the casa log files; so long suckers!
     xrun("rm", ["-fr ", td, task_last])
@@ -279,7 +178,7 @@ os.chdir('%s')
 
 def stack_fits(fitslist, outname, axis=0, ctype=None, keep_old=False, fits=False):
     """ Stack a list of fits files along a given axiis.
-       
+
        fitslist: list of fits file to combine
        outname: output file name
        axis: axis along which to combine the files
@@ -291,7 +190,8 @@ def stack_fits(fitslist, outname, axis=0, ctype=None, keep_old=False, fits=False
     try:
         import pyfits
     except ImportError:
-        warnings.warn("Could not find pyfits on this system. FITS files will not be stacked")
+        warnings.warn(
+            "Could not find pyfits on this system. FITS files will not be stacked")
         sys.exit(0)
 
     hdu = pyfits.open(fitslist[0])[0]
@@ -300,44 +200,44 @@ def stack_fits(fitslist, outname, axis=0, ctype=None, keep_old=False, fits=False
 
     # find axis via CTYPE key
     if ctype is not None:
-        for i in range(1,naxis+1):
-            if hdr['CTYPE%d'%i].lower().startswith(ctype.lower()):
-                axis = naxis - i # fits to numpy convention
+        for i in range(1, naxis+1):
+            if hdr['CTYPE%d' % i].lower().startswith(ctype.lower()):
+                axis = naxis - i  # fits to numpy convention
     elif fits:
-      axis = naxis - axis
+        axis = naxis - axis
 
     fits_ind = abs(axis-naxis)
-    crval = hdr['CRVAL%d'%fits_ind]
+    crval = hdr['CRVAL%d' % fits_ind]
 
     imslice = [slice(None)]*naxis
     _sorted = sorted([pyfits.open(fits) for fits in fitslist],
-                    key=lambda a: a[0].header['CRVAL%d'%(naxis-axis)])
+                     key=lambda a: a[0].header['CRVAL%d' % (naxis-axis)])
 
     # define structure of new FITS file
-    nn = [ hd[0].header['NAXIS%d'%(naxis-axis)] for hd in _sorted]
+    nn = [hd[0].header['NAXIS%d' % (naxis-axis)] for hd in _sorted]
     shape = list(hdu.data.shape)
     shape[axis] = sum(nn)
-    data = numpy.zeros(shape,dtype=float)
+    data = numpy.zeros(shape, dtype=float)
 
     for i, hdu0 in enumerate(_sorted):
         h = hdu0[0].header
         d = hdu0[0].data
-        imslice[axis] = range(sum(nn[:i]),sum(nn[:i+1]) )
-        data[imslice] = d 
-        if crval > h['CRVAL%d'%fits_ind]:
-            crval =  h['CRVAL%d'%fits_ind]
+        imslice[axis] = range(sum(nn[:i]), sum(nn[:i+1]))
+        data[imslice] = d
+        if crval > h['CRVAL%d' % fits_ind]:
+            crval = h['CRVAL%d' % fits_ind]
 
     # update header
-    hdr['CRVAL%d'%fits_ind] = crval
-    hdr['CRPIX%d'%fits_ind] = 1 
+    hdr['CRVAL%d' % fits_ind] = crval
+    hdr['CRPIX%d' % fits_ind] = 1
 
     pyfits.writeto(outname, data, hdr, clobber=True)
-    print("Successfully stacked images. Output image is %s"%outname)
+    print("Successfully stacked images. Output image is %s" % outname)
 
     # remove old files
     if not keep_old:
         for fits in fitslist:
-            os.system('rm -f %s'%fits)
+            os.system('rm -f %s' % fits)
 
 
 def substitute_globals(string, globs=None):
@@ -345,7 +245,7 @@ def substitute_globals(string, globs=None):
     globs = globs or inspect.currentframe().f_back.f_globals
     if sub:
         for item in map(str, sub):
-            string = string.replace("${%s}"%item, globs[item])
+            string = string.replace("${%s}" % item, globs[item])
         return string
     else:
         return False
@@ -354,7 +254,7 @@ def substitute_globals(string, globs=None):
 def get_imslice(ndim):
     imslice = []
     for i in xrange(ndim):
-        if i<ndim-2:
+        if i < ndim-2:
             imslice.append(0)
         else:
             imslice.append(slice(None))
@@ -374,33 +274,36 @@ def addcol(msname, colname=None, shape=None,
     """
     import numpy
     import pyrap.tables
-    tab = pyrap.tables.table(msname,readonly=False)
+    tab = pyrap.tables.table(msname, readonly=False)
 
-    try: 
+    try:
         tab.getcol(colname)
         print('Column already exists')
 
     except RuntimeError:
-        print('Attempting to add %s column to %s'%(colname,msname))
+        print('Attempting to add %s column to %s' % (colname, msname))
 
         from pyrap.tables import maketabdesc
         valuetype = valuetype or 'complex'
 
-        if shape is None: 
+        if shape is None:
             dshape = list(tab.getcol('DATA').shape)
             shape = dshape[1:]
 
-        if data_desc_type=='array':
+        if data_desc_type == 'array':
             from pyrap.tables import makearrcoldesc
-            coldmi = tab.getdminfo('DATA') # God forbid this (or the TIME) column doesn't exist
+            # God forbid this (or the TIME) column doesn't exist
+            coldmi = tab.getdminfo('DATA')
             coldmi['NAME'] = colname.lower()
-            tab.addcols(maketabdesc(makearrcoldesc(colname,init_with,shape=shape,valuetype=valuetype)),coldmi)
+            tab.addcols(maketabdesc(makearrcoldesc(
+                colname, init_with, shape=shape, valuetype=valuetype)), coldmi)
 
-        elif data_desc_type=='scalar':
+        elif data_desc_type == 'scalar':
             from pyrap.tables import makescacoldesc
             coldmi = tab.getdminfo('TIME')
             coldmi['NAME'] = colname.lower()
-            tab.addcols(maketabdesc(makescacoldesc(colname,init_with,valuetype=valuetype)),coldmi)
+            tab.addcols(maketabdesc(makescacoldesc(
+                colname, init_with, valuetype=valuetype)), coldmi)
 
         print('Column added successfuly.')
 
@@ -408,10 +311,11 @@ def addcol(msname, colname=None, shape=None,
             nrows = dshape[0]
 
             rowchunk = nrows//10 if nrows > 1000 else nrows
-            for row0 in range(0,nrows,rowchunk):
-                nr = min(rowchunk,nrows-row0)
+            for row0 in range(0, nrows, rowchunk):
+                nr = min(rowchunk, nrows-row0)
                 dshape[0] = nr
-                tab.putcol(colname,numpy.ones(dshape,dtype=valuetype)*init_with,row0,nr)
+                tab.putcol(colname, numpy.ones(
+                    dshape, dtype=valuetype)*init_with, row0, nr)
 
     tab.close()
 
@@ -432,7 +336,6 @@ def sumcols(msname, col1=None, col2=None, outcol=None, cols=None, suntract=False
             data = tab.getcol(col1) - tab.getcol(col2)
         else:
             data = tab.getcol(col1) + tab.getcol(col2)
-
 
     rowchunk = nrows//10 if nrows > 1000 else nrows
     for row0 in range(0, nrows, rowchunk):
@@ -461,8 +364,8 @@ def copycol(msname, fromcol, tocol):
 
 def cab_dict_update(dictionary, key=None, value=None, options=None):
     if options is None:
-        options = {key:value}
-    for key, value in options.iteritems():
+        options = {key: value}
+    for key, value in options.items():
         dictionary[key] = dictionary.pop(key, None) or value
     return dictionary
 
@@ -484,8 +387,10 @@ def compute_vis_noise(msname, sefd, spw_id=0):
     tab.close()
     spwtab.close()
 
-    print(">>> %s freq %.2f MHz (lambda=%.2fm), bandwidth %.2g kHz, %.2fs integrations, %.2fh synthesis"%(msname, freq0*1e-6, wavelength, bw*1e-3, dt, dtf/3600))
+    print(">>> %s freq %.2f MHz (lambda=%.2fm), bandwidth %.2g kHz, %.2fs integrations, %.2fh synthesis" % (
+        msname, freq0*1e-6, wavelength, bw*1e-3, dt, dtf/3600))
     noise = sefd/math.sqrt(abs(2*bw*dt))
-    print(">>> SEFD of %.2f Jy gives per-visibility noise of %.2f mJy"%(sefd, noise*1000))
+    print(">>> SEFD of %.2f Jy gives per-visibility noise of %.2f mJy" %
+          (sefd, noise*1000))
 
-    return noise 
+    return noise
