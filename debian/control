@@ -2,15 +2,31 @@ Source: stimela
 Section: science
 Priority: optional
 Maintainer: Gijs Molenaar (launchpad ppa build key) <gijs@pythonic.nl>
-Build-Depends: debhelper (>= 8.0.0), dh-python, python
-Standards-Version: 3.9.4
-Homepage: https://github.com/SpheMakh/Stimela
+Build-Depends: debhelper (>= 9),
+               dh-python,
+               python3,
+               python3-future-fstrings,
+               python3-setuptools,
+               python3-yaml
+Standards-Version: 4.4.1
+Homepage: https://github.com/ratt-ru/Stimela
 Vcs-Git: git://github.com/kernsuite-debian/stimela.git
 Vcs-Browser: https://github.com/kernsuite-debian/stimela
-X-Python-Version: >= 2.7
+X-Python3-Version: >= 3.5
+
+Package: python3-stimela
+Architecture: any
+Provides: ${python3:Provides}
+Depends: ${shlibs:Depends},
+         ${python3:Depends},
+         ${misc:Depends},
+         python3-scabha,
+         python3-yaml,
+         python3-future-fstrings
+Description: Dockerized Radio Interferometry Scripting Framework
 
 Package: stimela
 Architecture: any
 Provides: ${python:Provides}
-Depends: ${shlibs:Depends}, ${python:Depends}, ${misc:Depends}, python-yaml
+Depends: ${shlibs:Depends}, ${misc:Depends}, python3-stimela
 Description: Dockerized Radio Interferometry Scripting Framework
