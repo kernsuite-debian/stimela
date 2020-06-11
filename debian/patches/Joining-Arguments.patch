@@ -1,0 +1,13 @@
+diff --git a/stimela/cargo/cab/tigger_tag/src/run.py b/stimela/cargo/cab/tigger_tag/src/run.py
+index 4d2bbe8..a262a36 100644
+--- a/stimela/cargo/cab/tigger_tag/src/run.py
++++ b/stimela/cargo/cab/tigger_tag/src/run.py
+@@ -51,7 +51,7 @@ else:
+ args += ['{0}{1} {2}'.format(cab['prefix'], name, value)
+          for name, value in params.iteritems()]
+ 
+-_runc = " ".join([cab['binary']] args+[inlsm, tag])
++_runc = " ".join([cab['binary']]+args+[inlsm, tag])
+ 
+ try:
+     subprocess.check_call(shlex.split(_runc))
