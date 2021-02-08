@@ -113,7 +113,15 @@ class kat7_reduce(unittest.TestCase):
             input=INPUT,
             output=OUTPUT,
             label='listobs:: some stats',
-            time_out=300, tag="0.3.0-1")
+            time_out=300)
+
+        recipe.add("cab/owlcat_plotelev", "plotobs", {
+            "msname" : MS,
+            "output-name" : "obsplot.png",
+        },
+            input=INPUT,
+            output=OUTPUT,
+            label="plotobs:: Plot elevation/azimuth vs LST/UTC")
 
         # It is common for the array to require a small amount of time to settle down at the start of a scan. Consequently, it has
         # become standard practice to flag the initial samples from the start
@@ -127,7 +135,7 @@ class kat7_reduce(unittest.TestCase):
             input=INPUT,
             output=OUTPUT,
             label='quack_flagging:: Quack flagging',
-            time_out=300, version="4.7.2")
+            time_out=300)
 
         # Flag the autocorrelations
         recipe.add("cab/politsiyakat_autocorr_amp", "flag_autopower", {
@@ -250,7 +258,7 @@ class kat7_reduce(unittest.TestCase):
             output=OUTPUT,
             label="gaincal:: Gain calibration",
             time_out=300, 
-            version="5.6.1-8")
+            version=None)
 
         # Set fluxscale
         recipe.add('cab/casa_fluxscale', 'fluxscale', {
@@ -259,6 +267,7 @@ class kat7_reduce(unittest.TestCase):
             "fluxtable": FLUXSCALE_TABLE,
             "reference": [BPCAL],
             "transfer": [GCAL],
+            "save_result" : "fluxinfo.pickle",
             "incremental": False,
         },
             input=INPUT,
