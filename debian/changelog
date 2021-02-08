@@ -1,3 +1,11 @@
+stimela (1.6.8-1kern1) focal; urgency=medium
+
+  [ Athanaseus Javas Ramaila ]
+  * New upstream release 1.6.2
+  * Build for focal
+
+ --  <athanaseus@upload.kernsuite.info>  Mon, 08 Feb 2021 19:10:49 +0000
+
 stimela (1.6.2-1kern1) bionic; urgency=medium
 
   * New upstream release 1.6.2
