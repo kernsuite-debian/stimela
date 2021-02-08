@@ -11,7 +11,6 @@ import inspect
 import re
 from stimela.exceptions import *
 from stimela.dismissable import dismissable
-from stimela.main import get_cabs
 from stimela.cargo.cab import StimelaCabParameterError
 from datetime import datetime
 import traceback
@@ -71,6 +70,7 @@ class StimelaJob(object):
         self.recipe = recipe
         self.label = label or '{0}({1})'.format(name, id(name))
         self.log = recipe.log
+        self._log_fh = None
         self.active = False
         self.jtype = jtype  # ['docker', 'python', singularity']
         self.job = None
@@ -106,9 +106,9 @@ class StimelaJob(object):
                 log_dir = os.path.dirname(self.logfile) or "."
                 if not os.path.exists(log_dir):
                     os.mkdir(log_dir)
-                fh = logging.FileHandler(self.logfile, 'w', delay=True)
-                fh.setLevel(getattr(logging, loglevel))
-                self.log.addHandler(fh)
+                self._log_fh = logging.FileHandler(self.logfile, 'w', delay=True)
+                self._log_fh.setLevel(getattr(logging, loglevel))
+                self.log.addHandler(self._log_fh)
 
             self.log.propagate = True            # propagate also to main stimela logger
 
@@ -423,6 +423,14 @@ class StimelaJob(object):
             self.job.start(output_wrangler=self.apply_output_wranglers)
         return 0
 
+    def close(self):
+        """Call this to explicitly clean up after the job"""
+        if self._log_fh is not None:
+            self._log_fh.close()
+
+    def __del__(self):
+        self.close()
+
 
 class Recipe(object):
     def __init__(self, name, data=None,
@@ -431,6 +439,9 @@ class Recipe(object):
                  singularity_image_dir=None, JOB_TYPE='docker',
                  cabpath=None,
                  logger=None,
+                 msdir=None,
+                 indir=None,
+                 outdir=None,
                  log_dir=None, logfile=None, logfile_task=None,
                  cabspecs=None,
                  loglevel="INFO"):
@@ -453,17 +464,15 @@ class Recipe(object):
         """
         self.name = name
         self.name_ = re.sub(r'\W', '_', name)  # pausterized name
-        self.ms_dir = ms_dir
 
         self.stimela_context = inspect.currentframe().f_back.f_globals
         self.stimela_path = os.path.dirname(docker.__file__)
         # Update I/O with values specified on command line
-        script_context = self.stimela_context
-        self.indir = script_context.get('_STIMELA_INPUT', None)
-        self.outdir = script_context.get('_STIMELA_OUTPUT', None)
-        self.msdir = script_context.get('_STIMELA_MSDIR', None)
-        self.loglevel = script_context.get('_STIMELA_LOG_LEVEL', None) or loglevel
-        self.JOB_TYPE = script_context.get('_STIMELA_JOB_TYPE', None) or JOB_TYPE
+        self.indir = indir
+        self.outdir = outdir
+        self.msdir = self.ms_dir = msdir or ms_dir
+        self.loglevel = self.stimela_context.get('_STIMELA_LOG_LEVEL', None) or loglevel
+        self.JOB_TYPE = self.stimela_context.get('_STIMELA_JOB_TYPE', None) or JOB_TYPE
 
         self.cabpath = cabpath
         self.cabspecs = cabspecs or {}
@@ -471,6 +480,8 @@ class Recipe(object):
         # set default name for task-level logfiles
         self.logfile_task = "{0}/log-{1}-{{task}}".format(log_dir or ".", self.name_) \
             if logfile_task is None else logfile_task
+
+        self._log_fh = None
 
         if logger is not None:
             self.log = logger
@@ -495,10 +506,10 @@ class Recipe(object):
                     self.log.info('creating log directory {0:s}'.format(log_dir))
                     os.makedirs(log_dir)
 
-                fh = logging.FileHandler(logfile, 'w', delay=True)
-                fh.setLevel(getattr(logging, self.loglevel))
-                fh.setFormatter(stimela.log_formatter)
-                self.log.addHandler(fh)
+                self._log_fh = logging.FileHandler(logfile, 'w', delay=True)
+                self._log_fh.setLevel(getattr(logging, self.loglevel))
+                self._log_fh.setFormatter(stimela.log_formatter)
+                self.log.addHandler(self._log_fh)
 
         self.resume_file = '.last_{}.json'.format(self.name_)
         # set to default if not set
@@ -514,7 +525,7 @@ class Recipe(object):
 
         self.pid = os.getpid()
 
-        cmd_line_pf = script_context.get('_STIMELA_PULLFOLDER', None)
+        cmd_line_pf = self.stimela_context.get('_STIMELA_PULLFOLDER', None)
         self.singularity_image_dir = cmd_line_pf or singularity_image_dir or PULLFOLDER
         if self.singularity_image_dir and not self.JOB_TYPE:
             self.JOB_TYPE = "singularity"
@@ -581,10 +592,13 @@ class Recipe(object):
         if callable(image):
             job.jtype = 'python'
         
+        _indir = self.stimela_context.get('_STIMELA_INPUT', None) or input
+        _outdir = self.stimela_context.get('_STIMELA_OUTPUT', None) or  output
+        _msdir = self.stimela_context.get('_STIMELA_MSDIR', None) or msdir
         # The hirechy is command line, Recipe.add, and then Recipe
-        indir = self.indir or input
-        outdir = self.outdir or output
-        msdir = self.msdir or msdir or self.ms_dir
+        indir = _indir or self.indir
+        outdir = _outdir or self.outdir
+        msdir = _msdir or self.msdir
 
         job.setup_job(image=image, config=config,
              indir=indir, outdir=outdir, msdir=msdir,
@@ -746,7 +760,15 @@ class Recipe(object):
 
         return 0
 
-    def __del__(self):
-        """Failsafe"""
+    def close(self):
+        """Call this to explicitly close the recipe and clean up. Don't call run() after close()!"""
+        for job in self.jobs:
+            job.close()
         if os.path.exists(self.workdir):
             shutil.rmtree(self.workdir)
+        if self._log_fh is not None:
+            self._log_fh.close()
+
+    def __del__(self):
+        """Failsafe"""
+        self.close()
