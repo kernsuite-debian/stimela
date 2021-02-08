@@ -1,0 +1,18 @@
+From: Athanaseus Javas Ramaila <aramaila@ska.ac.za>
+Date: Mon, 8 Feb 2021 08:23:38 +0200
+Subject: Add missing bracket
+
+
+diff --git a/stimela/cargo/cab/casa_gencal/src/run.py b/stimela/cargo/cab/casa_gencal/src/run.py
+index b20d6af..79bcef8 100644
+--- a/stimela/cargo/cab/casa_gencal/src/run.py
++++ b/stimela/cargo/cab/casa_gencal/src/run.py
+@@ -11,7 +11,7 @@ task.run()
+ 
+ gtab = args["caltable"]
+ if not os.path.exists(gtab):
+-    raise RuntimeError(f"The gaintable was not created. Please refer to CASA {config.binary} logfile for further details"
++    raise RuntimeError(f"The gaintable was not created. Please refer to CASA {config.binary} logfile for further details")
+ 
+ tab = table(gtab)
+ field_ids = numpy.unique(tab.getcol("FIELD_ID"))
