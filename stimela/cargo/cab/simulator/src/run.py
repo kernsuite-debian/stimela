@@ -137,7 +137,7 @@ if beam and beam_files_pattern:
             NANT)*rms_perr, numpy.random.randn(NANT)*rms_perr
         ll, mm = " ".join(map(str, perr[0])), " ".join(map(str, perr[-1]))
         options['oms_pointing_errors.pe_l.values_str'] = "'%s'" % ll
-        options['oms_pointing_errors.pe_l.values_str'] = "'%s'" % mm
+        options['oms_pointing_errors.pe_m.values_str'] = "'%s'" % mm
 
 field_center = params.pop("field-center", None)
 if field_center and skymodel:
@@ -147,8 +147,7 @@ if field_center and skymodel:
         field_center = "J2000,%frad,%frad" % (ra, dec)
     tmp = "recentered_"+os.path.basename(skymodel)
 
-    utils.xrun("tigger-convert", ["--recenter",
-                                  field_center, skymodel, tmp, "-f"])
+    prun(["tigger-convert", "--recenter", field_center, skymodel, tmp, "-f"])
     options["tiggerlsm.filename"] = tmp
 
 prefix = ['-s {}'.format(saveconf) if saveconf else ''] + \
@@ -163,7 +162,7 @@ for key, value in options.items():
     args.append('{0}={1}'.format(key, value))
 
 _runc = " ".join([config.binary] + prefix + args + suffix)
-if prun(_runc) != 0:
-    sys.exit(0)
 
-
+exitcode = prun(_runc)
+if exitcode != 0:
+    raise RuntimeError(f"Meqtrees failed with exit code {exitcode}. See logs for more details")

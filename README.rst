@@ -3,6 +3,8 @@
 Stimela
 =======
 
+**NOTE** This is the repository for *Stimela Classic* (i.e. version 1.x) which is no longer actively developed -- only maintenance releases are done occasionally. New to Stimela and want to write YaML recipes? Then you're certainly looking for the shiny new `Stimela 2 <https://github.com/caracal-pipeline/stimela>`.
+
 
 |Pypi Version|
 |Build Version|  
@@ -22,13 +24,13 @@ To reference *stimela* in a scholary work, please use this citation:
 
 
 `Documentation <https://github.com/SpheMakh/Stimela/wiki>`_  
-==============
+===========================================================
 
 `Installation <https://github.com/SpheMakh/Stimela/wiki/Installation>`_
-==============
+=======================================================================
 
 `Tutorials <https://github.com/SpheMakh/Stimela/wiki/Examples>`_
-===========
+================================================================
 
 
 This project was initially funded by the `SKA/AWS AstroCompute In The Cloud <https://www.skatelescope.org/ska-aws-astrocompute-call-for-proposals>`_ initiative.

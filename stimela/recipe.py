@@ -159,7 +159,7 @@ class StimelaJob(object):
 
     def setup_job(self, image, config,
                    indir=None, outdir=None, msdir=None, 
-                   singularity_image_dir=None):
+                   singularity_image_dir=None, repository=None):
         """
             Setup job
 
@@ -222,6 +222,8 @@ class StimelaJob(object):
         parameter_file = os.path.join(cabpath, 'parameters.json')
         _cab = cab.CabDefinition(indir=indir, outdir=outdir,
                                  msdir=msdir, parameter_file=parameter_file)
+        param = utils.readJson(parameter_file)
+        _repository = param.get("hub", repository)
         self.setup_output_wranglers(_cab.wranglers)
         cont.IODEST = CONT_IO
         cont.cabname = _cab.task
@@ -256,7 +258,7 @@ class StimelaJob(object):
             self.tag = _cab.tag[-1]
             self.version = _cab.version[-1]
 
-        cabspecs = self.recipe.cabspecs.get(cont.cabname, None)
+        cabspecs = self.recipe.cabspecs
         if cabspecs:
             _tag = cabspecs.get("tag", None)
             _version = cabspecs.get("version", None)
@@ -281,6 +283,11 @@ class StimelaJob(object):
                 self.log.warn(f"You have chosen to use an unverified base image '{_cab.base}:{self.tag}'. May the force be with you.")
             else:
                 raise StimelaBaseImageError(f"The base image '{_cab.base}' with tag '{self.tag}' has not been verified. If you wish to continue with it, please add the 'force_tag' when adding it to your recipe")
+        if _repository:
+            image_url = f"{_repository}/{_cab.base}:{self.tag}" if _repository != "docker" and _repository != "docker.io" else \
+                        f"{_cab.base}:{self.tag}"
+        else:
+            image_url = f"{_cab.base}:{self.tag}"
 
         if self.jtype == "singularity":
             simage = _cab.base.replace("/", "_")
@@ -288,10 +295,10 @@ class StimelaJob(object):
                     simage, self.tag, singularity.suffix)
             cont.image = os.path.abspath(cont.image)
             if not os.path.exists(cont.image):
-                singularity.pull(":".join([_cab.base, self.tag]), 
+                singularity.pull(image_url, 
                         os.path.basename(cont.image), directory=singularity_image_dir)
         else:
-            cont.image = ":".join([_cab.base, self.tag])
+            cont.image = image_url
 
         # Container parameter file will be updated and validated before the container is executed
         cont._cab = _cab
@@ -331,6 +338,7 @@ class StimelaJob(object):
             cont.execdir = self.workdir
         else:
             cont.RUNSCRIPT = f"/{self.jtype}_run"
+            cont.add_environ('HOME', cont.IODEST["output"])
         
         runscript = shutil.which("stimela_runscript")
         if runscript:
@@ -342,7 +350,6 @@ class StimelaJob(object):
             raise OSError
 
         cont.add_environ('CONFIG', f'{cab.MOUNT}/configfile')
-        cont.add_environ('HOME', cont.IODEST["output"])
         cont.add_environ('STIMELA_MOUNT', cab.MOUNT)
 
         if msdir:
@@ -444,6 +451,7 @@ class Recipe(object):
                  outdir=None,
                  log_dir=None, logfile=None, logfile_task=None,
                  cabspecs=None,
+                 repository="quay.io",
                  loglevel="INFO"):
         """
         Deifine and manage a stimela recipe instance.        
@@ -463,6 +471,7 @@ class Recipe(object):
                       logfile_task may contain a "{task}" entry which will be substituted for a task name.
         """
         self.name = name
+        self.repository = repository
         self.name_ = re.sub(r'\W', '_', name)  # pausterized name
 
         self.stimela_context = inspect.currentframe().f_back.f_globals
@@ -602,7 +611,8 @@ class Recipe(object):
 
         job.setup_job(image=image, config=config,
              indir=indir, outdir=outdir, msdir=msdir,
-             singularity_image_dir=self.singularity_image_dir)
+             singularity_image_dir=self.singularity_image_dir, 
+             repository=self.repository)
 
         self.log.info(f'Adding cab \'{job.image}\' ({job.version}) to recipe, container name \'{name}\'')
         self.jobs.append(job)
