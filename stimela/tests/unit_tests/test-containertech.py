@@ -29,7 +29,12 @@ class basicrecipe_test(unittest.TestCase):
         global SINGULARITY, PODMAN
         SINGULARITY = False
         PODMAN = False
-        SINGULARITY = singularity.version and singularity.version >= "2.6.0"
+        if singularity.version:
+            if singularity.BINARY_NAME == "singularity":
+                SINGULARITY = singularity.version >= "2.6.0"
+            else:
+                SINGULARITY = True
+
 
     @classmethod
     def tearDownClass(cls):
@@ -60,6 +65,7 @@ class basicrecipe_test(unittest.TestCase):
         global INPUT
         global OUTPUT
         global SINGULARITY
+        
         if SINGULARITY is False:
             return
 

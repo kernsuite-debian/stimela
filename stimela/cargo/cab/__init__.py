@@ -22,7 +22,6 @@ __vol = {
         "mount": "/stimela_mount",
         }
 
-USER_HOME = os.environ["HOME"]
 
 for item in list(__vol.keys()):
     val = __vol[item]
@@ -49,7 +48,8 @@ class Parameter(object):
                  io=None,
                  mapping=None,
                  check_io=True,
-                 deprecated=False):
+                 deprecated=False,
+                 positional=False):
 
         self.name = name
         self.io = io
@@ -68,11 +68,12 @@ class Parameter(object):
         self.mapping = mapping
         self.check_io = check_io
         self.deprecated = deprecated
+        self.positional = positional
 
         self.value = None
 
     def __iter__(self):
-       for x in ["info", "default", "required", "choices", "mapping",
+       for x in ["info", "default", "positional", "required", "choices", "mapping",
                  "check_io", "value", "name", "io", "dtype"]:
           yield x
 
@@ -91,9 +92,11 @@ class Parameter(object):
                     return True
                 if isinstance(value, t):
                     return True
-                elif isinstance(value, list) and isinstance(value[0], tuple([t]+[int] if t is float else [t])):
-                    return True
-            elif item is "file":
+                elif isinstance(value, list):
+                    types = (t,int) if t is float else (t,)      # float permits ints as well
+                    if all(isinstance(x, types) for x in value): # check that all elements are of permitted type
+                        return True
+            elif item == "file":
                 return True
             elif isinstance(value, tuple([item]+[int] if item is float else [item])):
                 return True
@@ -178,6 +181,7 @@ class CabDefinition(object):
                                   default=default,
                                   mapping=param.get("mapping", None),
                                   required=param.get("required", False),
+                                  positional=param.get("positional", False),
                                   choices=param.get("choices", False),
                                   check_io=param.get("check_io", True),
                                   deprecated=param.get("deprecated", False))
@@ -280,6 +284,7 @@ class CabDefinition(object):
                     "dtype":   _types,
                     "info":   param.info,
                     "required":   param.required,
+                    "positional":   param.positional,
                     "check_io":   param.check_io,
                     "value":   param.default if param.value is None else param.value
                 })
