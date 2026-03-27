@@ -1,17 +1,19 @@
-import select, traceback, subprocess, errno, re, time, logging, os, sys
+import select 
+import traceback
+import subprocess
+import errno
+import re
+import time
+import logging
+import sys
+import signal
 
 DEBUG = 0
-from . import StimelaCabRuntimeError, StimelaProcessRuntimeError
+from stimela.exceptions import StimelaCabRuntimeError, StimelaProcessRuntimeError
 
 log = None
 
-def get_stimela_logger():
-    """Returns Stimela's logger, or None if no Stimela installed"""
-    try:
-        import stimela
-        return stimela.logger()
-    except ImportError:
-        return None
+from .xrun_asyncio import get_stimela_logger, dispatch_to_log
 
 def global_logger():
     """Returns Stimela logger if running in stimela, else inits a global logger"""
@@ -23,6 +25,29 @@ def global_logger():
             logging.basicConfig(format="%(message)s", level=logging.INFO, stream=sys.stdout)
             log = logging.getLogger()
     return log
+
+def xrun_nolog(command, name=None, shell=True):
+    log = global_logger()
+    name = name or command.split(" ", 1)[0]
+    try:
+        log.info("# running {}".format(command))
+        status = subprocess.call(command, shell=shell)
+
+    except KeyboardInterrupt:
+        log.error("# {} interrupted by Ctrl+C".format(name))
+        raise
+
+    except Exception as exc:
+        for line in traceback.format_exc():
+            log.error("# {}".format(line.strip()))
+        log.error("# {} raised exception: {}".format(name, str(exc)))
+        raise
+
+    if status:
+        raise StimelaProcessRuntimeError("{} returns error code {}".format(name, status))
+
+    return 0
+
 
 class SelectPoller(object):
     """Poller class. Poor man's select.poll(). Damn you OS/X and your select.poll will-you-won'y-you bollocks"""
@@ -107,55 +132,36 @@ class Poller(object):
         return fobj.fileno() in self.fdlabels
 
 
-def _remove_ctrls(msg):
-    ansi_escape = re.compile(r'\x1B[@-_][0-?]*[ -/]*[@-~]')
-    return ansi_escape.sub('', msg)
 
-
-def xrun_nolog(command, name=None):
-    log = global_logger()
-    name = name or command.split(" ", 1)[0]
-    try:
-        log.info("# running {}".format(command))
-        status = subprocess.call(command, shell=True)
-
-    except KeyboardInterrupt:
-        log.error("# {} interrupted by Ctrl+C".format(name))
-        raise
-
-    except Exception as exc:
-        for line in traceback.format_exc():
-            log.error("# {}".format(line.strip()))
-        log.error("# {} raised exception: {}".format(name, str(exc)))
-        raise
-
-    if status:
-        raise StimelaProcessRuntimeError("{} returns error code {}".format(name, status))
-
-    return 0
-
-def xrun(command, options, log=None, logfile=None, env=None, timeout=-1, kill_callback=None, output_wrangler=None):
-    command_name = command
+def xrun(command, options, log=None, env=None, timeout=-1, kill_callback=None, output_wrangler=None, shell=True, return_errcode=False, command_name=None, log_command=True):
+    command_name = command_name or command
 
     # this part could be inside the container
-    command = " ".join([command] + list(map(str, options)))
+    command_line = " ".join([command] + list(map(str, options)))
+    if shell:
+        command_line = " ".join([command] + list(map(str, options)))
+        command = [command_line]
+    else:
+        command = [command] + list(map(str, options))
+        command_line = " ".join(command)
 
     log = log or get_stimela_logger()
 
     if log is None:
-        return xrun_nolog(command, name=command_name)
+        return xrun_nolog(command, name=command_name, shell=shell)
 
     # this part is never inside the container
     import stimela
 
     log = log or stimela.logger()
 
-    log.info("running " + command, extra=dict(stimela_subprocess_output=(command_name, "start")))
+    if log_command:
+        log.info("running " + command_line, extra=dict(stimela_subprocess_output=(command_name, "start")))
 
     start_time = time.time()
 
-    proc = subprocess.Popen([command], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-                            env=env, bufsize=1, universal_newlines=True, shell=True)
+    proc = subprocess.Popen(command, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                            env=env, bufsize=1, universal_newlines=True, shell=shell)
 
     poller = Poller(log=log)
     poller.register_process(proc)
@@ -178,21 +184,16 @@ def xrun(command, options, log=None, logfile=None, env=None, timeout=-1, kill_ca
                 if empty_line:
                     poller.unregister_file(fobj)
                     if proc.stdout not in poller and proc.stderr not in poller:
-                        log.debug("The {} process has exited".format(command))
+                        log.debug(f"the {command_name} process has exited")
                         proc_running = None
                         break
                     continue
                 # dispatch output to log
-                line = _remove_ctrls(line)
-                severity = logging.WARNING if fobj is proc.stderr else logging.INFO
-                stream_name = "stderr" if fobj is proc.stderr else "stdout"
-                # feed through wrangler to adjust severity and content
-                if output_wrangler is not None:
-                    line, severity = output_wrangler(line, severity, log)
-                if line is not None:
-                    log.log(severity, line, extra=dict(stimela_subprocess_output=(command_name, stream_name)))
+                dispatch_to_log(log, line, command_name, 
+                                stream_name="stderr" if fobj is proc.stderr else "stdout", 
+                                output_wrangler=output_wrangler)
             if timeout > 0 and time.time() > start_time + timeout:
-                log.error("timeout, killing {} process".format(command))
+                log.error(f"timeout, killing {command_name} process")
                 kill_callback() if callable(kill_callback) else proc.kill()
                 proc_running = False
 
@@ -200,31 +201,45 @@ def xrun(command, options, log=None, logfile=None, env=None, timeout=-1, kill_ca
         status = proc.returncode
 
     except SystemExit as exc:
-        log.error("{} has exited with code {}".format(command, exc.code))
         proc.wait()
         status = exc.code
-        raise StimelaCabRuntimeError('{}: SystemExit with code {}'.format(command_name, status))
+        raise StimelaCabRuntimeError(f"{command_name}: SystemExit with code {status}", log=log)
 
     except KeyboardInterrupt:
         if callable(kill_callback):
-            log.warning("Ctrl+C caught: shutting down {} process, please give it a few moments".format(command_name))
+            log.warning(f"Ctrl+C caught: shutting down {command_name} process, please give it a few moments")
             kill_callback() 
-            log.info("the {} process was shut down successfully".format(command_name),
+            log.info(f"the {command_name} process was shut down successfully",
                      extra=dict(stimela_subprocess_output=(command_name, "status")))
+            proc.wait()
         else:
-            log.warning("Ctrl+C caught, killing {} process".format(command_name))
-            proc.kill()
-        proc.wait()
-        raise StimelaCabRuntimeError('{} interrupted with Ctrl+C'.format(command_name))
+            log.warning(f"Ctrl+C caught, interrupting {command_name} process {proc.pid}")
+            proc.send_signal(signal.SIGINT)
+            for retry in range(10):
+                if retry:
+                    log.info(f"Process {proc.pid} not exited after {retry} seconds, waiting a bit longer...")
+                try:
+                    proc.wait(1)
+                    log.info(f"Process {proc.pid} has exited with return code {proc.returncode}")
+                    break
+                except subprocess.TimeoutExpired as exc:
+                    if retry == 4:
+                        log.warning(f"Terminating process {proc.pid}")
+                        proc.terminate()
+            else:
+                log.warning(f"Killing process {proc.pid}")
+                proc.kill()
+                proc.wait()
+    
+        raise StimelaCabRuntimeError(f"{command_name} interrupted with Ctrl+C")
 
     except Exception as exc:
         traceback.print_exc()
-        log.error("Exception caught: {}".format(str(exc)))
         proc.wait()
-        raise StimelaCabRuntimeError("{} throws exception '{}'".format(command_name, str(exc)))
+        raise StimelaCabRuntimeError(f"{command_name} threw exception: {exc}'", log=log)
 
-    if status:
-        raise StimelaCabRuntimeError("{} returns error code {}".format(command_name, status))
+    if status and not return_errcode:
+        raise StimelaCabRuntimeError(f"{command_name} returns error code {status}")
     
     return status
     
