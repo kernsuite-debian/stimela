@@ -1,0 +1,210 @@
+cabs:
+  simms:
+    image: null
+    command: echo 
+    policies:
+      skip_implicits: True
+    # simms
+    inputs:
+      msname: str * "* marks required value"
+      tel: str
+      dtime: int
+      synthesis: float
+    outputs:
+      ms:
+        dtype: MS
+        implicit: "{current.msname}"
+        must_exist: false
+        
+  cubical:
+    command: echo
+    # gocubical
+    inputs:
+      ms:
+        dtype: MS
+        required: true
+        writable: true
+        nom_de_guerre: data-ms
+        must_exist: false   # for testing
+      jones:
+        dtype: List[str]
+        required: true
+        policies:
+          repeat: list
+    dynamic_schema: stimela_tests.example_dynschema.cubical_schema
+
+  wsclean:
+    image: null
+    command: echo
+    policies:
+      skip_implicits: True
+    inputs:
+      ms:
+        dtype: MS
+        must_exist: false  # for testing
+      prefix:
+        dtype: str
+      scale:
+        dtype: str
+      size:
+        dtype: int
+      dummy:
+        dtype: str
+      dummy2:
+        dtype: str
+    outputs:
+      restored:
+        implicit: "foo"
+      dirty:
+        implicit: "foo"
+
+  aimfast:
+    command: /bin/true ## dummy command for now, since this is just a dummy example step
+    inputs:
+      image:
+        dtype: str
+        required: true
+      dirty:
+        dtype: str
+        required: true
+
+  test_callable:
+    command: stimela_tests.test_recipe.callable_function
+    flavour: python
+    inputs:
+      a:
+        dtype: int
+      b:
+        dtype: str
+opts:
+  log:
+    dir: test-logs/logs-{config.run.datetime} 
+    nest: 3
+    symlink: logs
+
+
+recipe:
+  name: "demo recipe"
+  info: 'top level recipe definition'
+  aliases:
+    msname: selfcal.ms
+    telescope: makems.tel
+  defaults:
+    telescope: kat-7
+    selfcal.image.size: 1024
+  inputs:
+    band:
+      choices: [L, UHF, K]
+      default: L
+    elem-xyz:
+      default: x
+      choices: [x,y,z]
+    elemlist-xyz:
+      dtype: Union[str, List[str]]
+      element_choices: [x,y,z]
+    elemlist_xyz:
+      default: "deliberate use of _ vs - to check validate() avoiding this situation"
+    continue:
+      default: "deliberate use of Python keyword to make sure validate() doesn't barf"
+    with:
+      default: "deliberate use of Python keyword to make sure validate() doesn't barf"
+    recipe-file:
+      dtype: File
+      default: test_recipe.yml
+      must_exist: True
+    recipe-file-2:
+      dtype: File
+      default: test_recipe_notexists.yml
+      must_exist: False
+    recipe-dirs:
+      dtype: List[Directory]
+      default: ['.', '..', '~']
+    recipe-uri:
+      dtype: URI
+      default: file:test_recipe.yml  # Somewhat unusual - relative URI.
+      must_exist: true
+    recipe-uri-2:
+      dtype: List[URI]
+      default: [file:test_recipe.yml, s3://some.s3.path]
+      must_exist: true
+  outputs:
+    output-dir:    
+      dtype: Directory
+      mkdir: true
+      default: tmp/tmp
+    output-uri:    
+      dtype: URI
+      mkdir: true
+      default: tmp/tmp
+
+  assign:
+    foo: bar
+
+  assign_based_on:
+    band:
+      L:
+        var1: x
+        var2: y
+        config.cabs.wsclean.inputs.dummy.default: 1000
+        band_label: "band1-{recipe.band}"
+        test_callable.b: LBAND
+      UHF:
+        var1: x1
+        var2: y1
+        config.cabs.wsclean.inputs.dummy.default: 2000
+        band_label: "band2-{recipe.band}"
+        test_callable.b: UHF
+      DEFAULT:
+
+  steps: 
+      test_callable:
+        cab: test_callable
+        params:
+          a: 1
+          b: foo
+
+      makems:
+          cab: simms
+          params:
+              msname: "{recipe.msname}"
+              synthesis: 0.128
+      selfcal:
+          params:
+            band_name: "{recipe.band_label}"
+          recipe:
+              name: "demo selfcal"
+              info: "this is a generic selfcal loop"
+              # _for:
+              #     selfcal_loop: 1,2,3     # repeat three times
+              steps:
+                  calibrate: 
+                      cab: cubical
+                      params:
+                        jones: [B,G]
+                        B.f_int: 1
+                        G.f_int: 1
+                        # X__f_int: 1
+                      # _skip: "recipe.vars.selfcal_loop < 2"    # skip on first iteration, go straight to image
+                  image:
+                      cab: wsclean
+                      params:
+                          scale: "{recipe.scale}"
+                          dummy2: "{recipe.band_name}"
+                  evaluate:
+                      cab: aimfast
+                      params:
+                          image: "{previous.restored}"
+                          dirty: "{steps.image.dirty}"
+                      # _break_on: "self.dr_achieved"    # break out of recipe based on some output value
+              # the below formally specifies the inputs and outputs of the selfcal recipe
+              # aliases map directly to step inputs/outputs, and use their schema
+              aliases:
+                  ms: [calibrate.ms, image.ms]
+                  image_name: image.prefix
+              inputs:
+                  scale: 
+                    dtype: Union[str, float]
+                  band_name:
+                    dtype: str
+              defaults:
+                  scale: 30asec

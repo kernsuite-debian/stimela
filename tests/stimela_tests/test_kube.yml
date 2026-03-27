@@ -1,0 +1,27 @@
+_include:
+  - (cultcargo)breizorro.yml
+
+opts:
+  backend:
+    select: kube
+
+recipe:
+  name: "demo recipe"
+  info: 'top level recipe definition'
+  inputs:
+    num_workers: int = 3 "number of workers to use in dask cluster"
+  assign:
+    name: demo
+    config.opts.backend.kube.dask_cluster.num_workers: =recipe.num_workers
+  steps:
+      mask1:
+        cab: breizorro
+        params:
+          restored-image: im3-MFS-image.fits
+          mask: =STRIPEXT(current.restored-image) + ".mask.fits"
+      mask2:
+        cab: breizorro
+        params:
+          mask-image: =previous.mask
+          dilate: 2
+          mask: =STRIPEXT(previous.restored-image) + ".mask2.fits"
