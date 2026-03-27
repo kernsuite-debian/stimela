@@ -1,3 +1,4 @@
-version=3
-opts=filenamemangle=s/.+\/v?(\d\S+)\.tar\.gz/Stimela-$1\.tar\.gz/ \
-  https://github.com/SpheMakh/Stimela/tags .*/v?(\d\S+)\.tar\.gz
+version=4
+opts=filenamemangle=s/.*\/v?(\d[\d\.]*)\.tar\.gz/Stimela-$1\.tar\.gz/ \
+  https://github.com/caracal-pipeline/Stimela/tags \
+  (?:.*?/)?v?(\d[\d\.]*)\.tar\.gz
