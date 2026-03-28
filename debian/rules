@@ -6,7 +6,3 @@ export PYBUILD_NAME=stimela
 
 %:
 	dh $@ --with python3 --buildsystem=pybuild --parallel
-
-override_dh_auto_clean:
-	dh_auto_clean
-	rm -rf *.egg-info

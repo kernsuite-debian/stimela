@@ -1,3 +1,11 @@
+stimela (2.1.2.1-1kern1) noble; urgency=medium
+
+  [ Athanaseus Javas Ramaila ]
+  * New upstream version 2.1.2.1
+  * Build for noble
+
+ -- KERN packaging <packaging@kernsuite.info>  Sat, 28 Mar 2026 20:24:41 +0200
+
 stimela (1.7.9-1kern1) jammy; urgency=medium
 
   [ Athanaseus Javas Ramaila ]
